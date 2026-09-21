@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Project Workspace • AI Companion</title>
+<link rel="stylesheet" href="../assets/css/project-workspace.css">
+</head>
+<body>
+<div class="orb one"></div><div class="orb two"></div>
+<main class="workspace">
+<header class="topbar">
+  <a class="back" href="projects.html">← Projects</a>
+  <div class="project-head"><div class="project-icon">▰</div><div><small>PROJECT WORKSPACE</small><h1 id="projectName">Project</h1><p id="projectDesc">Loading project...</p></div></div>
+  <button id="projectMenu" class="ghost">•••</button>
+</header>
+<nav class="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="chat">Chat</button>
+  <button class="tab" data-tab="files">Files</button>
+  <button class="tab" data-tab="tasks">Tasks</button>
+  <button class="tab" data-tab="settings">Settings</button>
+</nav>
+
+<section id="overview" class="panel active">
+  <div class="hero-card"><div><span class="eyebrow">YOUR WORKSPACE</span><h2 id="welcome">Let's build something.</h2><p>Keep project context, files, conversations and tasks together in one focused space.</p></div><button class="primary" data-go="chat">Start project chat →</button></div>
+  <div class="cards">
+    <article class="stat"><span>Tasks</span><b id="taskCount">0</b><small>in this project</small></article>
+    <article class="stat"><span>Files</span><b id="fileCount">0</b><small>stored locally</small></article>
+    <article class="stat"><span>Status</span><b id="statusValue">Active</b><small id="createdValue">Created recently</small></article>
+  </div>
+  <div class="grid2"><article class="card"><h3>Project context</h3><p id="contextText">No description yet.</p></article><article class="card"><h3>Quick actions</h3><div class="quick"><button data-go="chat">💬 Ask AI</button><button data-go="files">📁 Add files</button><button data-go="tasks">✓ Add task</button></div></article></div>
+</section>
+
+<section id="chat" class="panel">
+  <div class="section-head"><div><span class="eyebrow">PROJECT AI</span><h2>Project Chat</h2></div><button id="clearChat" class="ghost">Clear</button></div>
+  <div id="messages" class="messages"></div>
+  <form id="chatForm" class="composer"><textarea id="chatInput" rows="2" placeholder="Ask something about this project..." required></textarea><button class="primary">Send</button></form>
+  <small class="note">Local project chat demo. Connect a secure AI backend later for real AI responses.</small>
+</section>
+
+<section id="files" class="panel">
+  <div class="section-head"><div><span class="eyebrow">PROJECT FILES</span><h2>Files</h2></div><label class="primary upload">＋ Add files<input id="fileInput" type="file" multiple hidden></label></div>
+  <div id="dropzone" class="dropzone">Drop files here or choose <b>Add files</b></div>
+  <div id="fileList" class="file-list"></div>
+</section>
+
+<section id="tasks" class="panel">
+  <div class="section-head"><div><span class="eyebrow">PROJECT TASKS</span><h2>Tasks</h2></div></div>
+  <form id="taskForm" class="task-form"><input id="taskInput" placeholder="What needs to be done?" maxlength="120" required><button class="primary">Add task</button></form>
+  <div id="taskList" class="task-list"></div>
+</section>
+
+<section id="settings" class="panel">
+  <div class="section-head"><div><span class="eyebrow">PROJECT SETTINGS</span><h2>Settings</h2></div></div>
+  <div class="settings-card">
+    <label>Project name<input id="editName" maxlength="60"></label>
+    <label>Description<textarea id="editDesc" maxlength="180"></textarea></label>
+    <label>Status<select id="editStatus"><option value="active">Active</option><option value="paused">Paused</option></select></label>
+    <div><button id="saveSettings" class="primary">Save changes</button><button id="deleteProject" class="danger">Delete project</button></div>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+<script src="../assets/js/project-workspace.js"></script>
+</body>
+</html>
