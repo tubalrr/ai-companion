@@ -1,1 +1,22 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Coding • AI Companion</title><link rel="stylesheet" href="../assets/css/coding.css"></head><body><main class="page"><header><a href="../index.html">← Back</a><h1>⌘ Coding</h1><p>Work with separate HTML, CSS and JavaScript files.</p></header><section class="editor"><div class="tabs"><button class="tab active" data-target="htmlCode">HTML</button><button class="tab" data-target="cssCode">CSS</button><button class="tab" data-target="jsCode">JavaScript</button></div><textarea id="htmlCode" class="code active"><!doctype html>\n<html>\n  <body>\n    <h1>Hello AI Companion</h1>\n  </body>\n</html></textarea><textarea id="cssCode" class="code">body { font-family: system-ui; }\nh1 { color: #765aff; }</textarea><textarea id="jsCode" class="code">console.log("AI Companion Coding");</textarea><div class="actions"><button id="saveCode">Save locally</button><button id="previewCode">Preview</button></div></section><iframe id="preview" title="Preview"></iframe></main><script src="../assets/js/coding.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Coding • AI Companion</title><link rel="stylesheet" href="../assets/css/coding.css"></head>
+<body><div class="orb one"></div><div class="orb two"></div><main class="page">
+<header><a class="back" href="../index.html">← Back</a><div class="heading"><div class="icon">⌘</div><div><small>AI COMPANION</small><h1>Coding</h1><p>Build and preview separate HTML, CSS and JavaScript files.</p></div></div></header>
+<section class="toolbar"><div class="file-title"><span>●</span><b id="fileLabel">index.html</b><small id="saveState">Unsaved</small></div><div class="actions"><button id="newCode">New</button><button id="saveCode" class="primary">Save</button><button id="downloadCode">Download</button><button id="runCode" class="primary">▶ Run</button></div></section>
+<section class="workspace">
+<aside class="files"><div class="files-title">FILES <button id="addFile">＋</button></div><button class="file active" data-file="htmlCode" data-label="index.html">◇ index.html</button><button class="file" data-file="cssCode" data-label="style.css"># style.css</button><button class="file" data-file="jsCode" data-label="script.js">JS script.js</button></aside>
+<div class="editor"><textarea id="htmlCode" class="code" spellcheck="false"><!doctype html>
+<html>
+<head><meta charset="UTF-8"><title>My Project</title></head>
+<body>
+  <h1>Hello AI Companion</h1>
+  <p>Start coding here.</p>
+</body>
+</html></textarea><textarea id="cssCode" class="code" spellcheck="false">body {
+  font-family: system-ui, sans-serif;
+  padding: 40px;
+}
+h1 { color: #765aff; }</textarea><textarea id="jsCode" class="code" spellcheck="false">console.log("AI Companion Coding");</textarea><div class="statusbar"><span id="cursor">Ln 1, Col 1</span><span>HTML • CSS • JS</span></div></div>
+</section>
+<section class="preview-head"><h2>Live Preview</h2><button id="openPreview">Open preview ↗</button></section><iframe id="preview" title="Live Preview" sandbox="allow-scripts allow-forms"></iframe>
+</main><div id="toast"></div><script src="../assets/js/coding.js"></script></body></html>
