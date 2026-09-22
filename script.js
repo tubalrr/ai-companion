@@ -209,37 +209,46 @@ Error generating stack: `+o.message+`
     }
     el.textContent=message;
     clearTimeout(el._timer);
-    el._timer=setTimeout(()=>el.remove(),3000);
+    el._timer=setTimeout(()=>el.remove(),2800);
   };
 
-  const closeMenus=()=>{
-    document.querySelectorAll("[data-recent-menu]").forEach(m=>m.remove());
+  const getContainer=()=>document.querySelector(".space-y-1");
+  const getTitle=(wrap)=>wrap.querySelector("button:not([title='Conversation actions']) div")?.textContent?.trim()||"Conversation";
+
+  const pinnedKey="aiCompanionPinnedConversations";
+  const getPinned=()=>JSON.parse(localStorage.getItem(pinnedKey)||"[]");
+  const setPinned=(list)=>localStorage.setItem(pinnedKey,JSON.stringify([...new Set(list)]));
+
+  const markPinned=(wrap,pinned)=>{
+    wrap.dataset.pinned=pinned?"true":"false";
+    let badge=wrap.querySelector("[data-pin-badge]");
+    if(pinned && !badge){
+      badge=document.createElement("span");
+      badge.dataset.pinBadge="true";
+      badge.textContent="📌";
+      badge.title="Pinned";
+      badge.style.cssText="position:absolute;right:40px;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;opacity:.75;z-index:10;pointer-events:none";
+      wrap.appendChild(badge);
+    }else if(!pinned && badge){
+      badge.remove();
+    }
   };
 
-  const restorePinned=()=>{
-    const container=document.querySelector(".space-y-1");
+  const applyPinnedOrder=()=>{
+    const container=getContainer();
     if(!container)return;
-    const pinned=JSON.parse(localStorage.getItem("aiCompanionPinnedConversations")||"[]");
-    if(!pinned.length)return;
-    const items=[...container.querySelectorAll(".group")];
-    pinned.slice().reverse().forEach(title=>{
-      const item=items.find(el=>el.querySelector("button:not([title='Conversation actions']) div")?.textContent?.trim()===title);
-      if(item){
-        item.dataset.pinned="true";
-        if(!item.querySelector("[data-pin-badge]")){
-          const badge=document.createElement("span");
-          badge.dataset.pinBadge="true";
-          badge.textContent="📌";
-          badge.style.cssText="position:absolute;left:7px;top:8px;font-size:10px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));z-index:5";
-          item.appendChild(badge);
-        }
-        container.prepend(item);
-      }
-    });
+    const pinned=getPinned();
+    const items=[...container.querySelectorAll(":scope > .group")];
+    items.forEach(item=>markPinned(item,pinned.includes(getTitle(item))));
+    const pinnedItems=items.filter(item=>pinned.includes(getTitle(item)));
+    const normalItems=items.filter(item=>!pinned.includes(getTitle(item)));
+    [...pinnedItems,...normalItems].forEach(item=>container.appendChild(item));
   };
+
+  const restorePinned=()=>setTimeout(applyPinnedOrder,80);
 
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",restorePinned);
-  else setTimeout(restorePinned,0);
+  else restorePinned();
 
   document.addEventListener("click",function(event){
     const btn=event.target.closest("button[title='Conversation actions']");
@@ -252,7 +261,7 @@ Error generating stack: `+o.message+`
     if(!wrap)return;
 
     const existing=wrap.querySelector("[data-recent-menu]");
-    closeMenus();
+    document.querySelectorAll("[data-recent-menu]").forEach(m=>m.remove());
     if(existing)return;
 
     const rect=btn.getBoundingClientRect();
@@ -260,11 +269,13 @@ Error generating stack: `+o.message+`
     menu.dataset.recentMenu="true";
     menu.style.cssText="position:fixed;left:"+Math.max(8,Math.min(window.innerWidth-178,rect.right-158))+"px;top:"+Math.min(window.innerHeight-235,rect.bottom+6)+"px;width:170px;padding:6px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(18,20,34,.99);backdrop-filter:blur(22px);box-shadow:0 18px 45px rgba(0,0,0,.55);z-index:99999";
 
+    const isPinned=getPinned().includes(getTitle(wrap));
     menu.innerHTML=recentActions.map(([key,icon,label])=>{
+      const display=key==="pin"&&isPinned?"Unpin":label;
       const color=key==="delete"?"#fb7185":"#c4b5fd";
       return '<button data-recent-action="'+key+'" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:transparent;color:rgba(255,255,255,.82);text-align:left;border-radius:9px;cursor:pointer;font:13px system-ui,sans-serif">'+
         '<span style="width:24px;height:24px;display:grid;place-items:center;border-radius:7px;background:rgba(255,255,255,.06);color:'+color+'">'+icon+'</span>'+
-        '<span>'+label+'</span></button>';
+        '<span>'+display+'</span></button>';
     }).join("");
 
     document.body.appendChild(menu);
@@ -274,51 +285,46 @@ Error generating stack: `+o.message+`
         e.preventDefault();
         e.stopPropagation();
         const action=item.dataset.recentAction;
-        const titleEl=wrap.querySelector("button:not([title='Conversation actions']) div");
-        const currentTitle=titleEl?.textContent?.trim()||"Conversation";
+        const title=getTitle(wrap);
+        const currentPinned=getPinned();
 
         if(action==="pin"){
-          const container=wrap.parentElement;
-          const titleNode=wrap.querySelector("button:not([title='Conversation actions']) div");
-          const title=titleNode?.textContent?.trim()||"Conversation";
-          const pinned=JSON.parse(localStorage.getItem("aiCompanionPinnedConversations")||"[]");
-          const already=pinned.includes(title);
-          if(already){
-            localStorage.setItem("aiCompanionPinnedConversations",JSON.stringify(pinned.filter(x=>x!==title)));
-            wrap.dataset.pinned="false";
-            const badge=wrap.querySelector("[data-pin-badge]");
-            if(badge) badge.remove();
+          const isPinned=currentPinned.includes(title);
+          if(isPinned){
+            setPinned(currentPinned.filter(x=>x!==title));
+            markPinned(wrap,false);
             showToast("Conversation unpinned.");
           }else{
-            pinned.unshift(title);
-            localStorage.setItem("aiCompanionPinnedConversations",JSON.stringify([...new Set(pinned)]));
-            wrap.dataset.pinned="true";
-            if(!wrap.querySelector("[data-pin-badge]")){
-              const badge=document.createElement("span");
-              badge.dataset.pinBadge="true";
-              badge.textContent="📌";
-              badge.style.cssText="position:absolute;left:7px;top:8px;font-size:10px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));z-index:5";
-              wrap.appendChild(badge);
-            }
-            if(container) container.prepend(wrap);
+            setPinned([title,...currentPinned]);
+            markPinned(wrap,true);
+            applyPinnedOrder();
             showToast("Conversation pinned.");
           }
         }else if(action==="rename"){
-          const next=window.prompt("Rename conversation:",currentTitle);
-          if(next&&next.trim()&&titleEl) titleEl.textContent=next.trim();
-        }else if(action==="share"){
-          const shareText="AI Companion conversation: "+currentTitle;
-          if(navigator.share){
-            navigator.share({title:currentTitle,text:shareText}).catch(()=>{});
-          }else if(navigator.clipboard){
-            navigator.clipboard.writeText(shareText).then(()=>showToast("Conversation link text copied."));
-          }else{
-            showToast("Sharing is not available in this browser.");
+          const titleEl=wrap.querySelector("button:not([title='Conversation actions']) div");
+          const next=window.prompt("Rename conversation:",title);
+          if(next&&next.trim()){
+            const oldTitle=title;
+            titleEl.textContent=next.trim();
+            const pins=getPinned();
+            const pos=pins.indexOf(oldTitle);
+            if(pos!==-1){
+              pins[pos]=next.trim();
+              setPinned(pins);
+            }
+            applyPinnedOrder();
           }
+        }else if(action==="share"){
+          const shareText="AI Companion conversation: "+title;
+          if(navigator.share) navigator.share({title,text:shareText}).catch(()=>{});
+          else if(navigator.clipboard) navigator.clipboard.writeText(shareText).then(()=>showToast("Conversation text copied."));
+          else showToast("Sharing is not available in this browser.");
         }else if(action==="archive"){
           wrap.style.display="none";
           showToast("Conversation archived.");
         }else if(action==="delete"){
+          const pins=getPinned().filter(x=>x!==title);
+          setPinned(pins);
           wrap.remove();
           showToast("Conversation deleted.");
         }
@@ -330,7 +336,7 @@ Error generating stack: `+o.message+`
   document.addEventListener("click",function(event){
     if(!event.target.closest("button[title='Conversation actions']") &&
        !event.target.closest("[data-recent-menu]")){
-      closeMenus();
+      document.querySelectorAll("[data-recent-menu]").forEach(m=>m.remove());
     }
   },false);
 })();
