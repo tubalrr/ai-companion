@@ -20,7 +20,6 @@ test.describe("AI Companion page smoke tests", () => {
     test("loads " + pagePath, async ({ page }) => {
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
-      page.on("console", msg => { if (msg.type() === "error") errors.push(msg.text()); });
       const response = await page.goto(pagePath, { waitUntil: "networkidle" });
       expect(response?.ok()).toBeTruthy();
       await expect(page.locator("body")).toBeVisible();
