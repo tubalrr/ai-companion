@@ -104,8 +104,9 @@ Error generating stack: `+o.message+`
   let sending=false;
   let cloudConversationId=null;
 
+  const apiBase=()=>String(window.AI_COMPANION_API_BASE||"").replace(/\/+$/,"");
   const cloudFetch=async(path,options={})=>{
-    const response=await fetch(path,{credentials:"include",...options});
+    const response=await fetch(apiBase()+path,{credentials:"include",...options});
     if(response.status===401)return null;
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(data.error||"Cloud sync failed");
@@ -196,7 +197,7 @@ Error generating stack: `+o.message+`
     // Keep the dashboard publicly viewable like ChatGPT; authentication is
     // required only when the user actually starts an AI conversation.
     try{
-      const auth=await fetch("/api/auth/me",{credentials:"include",cache:"no-store"});
+      const auth=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store"});
       if(auth.status===401){
         let modal=document.getElementById("ai-auth-modal");
         if(!modal){
@@ -229,7 +230,7 @@ Error generating stack: `+o.message+`
     if(setter)setter.call(el,"");else el.value="";
     el.dispatchEvent(new Event("input",{bubbles:true}));
     try{
-      const response=await fetch("/api/chat",{
+      const response=await fetch(apiBase()+"/api/chat",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({messages:history})
@@ -625,7 +626,7 @@ Error generating stack: `+o.message+`
 (function(){
   const loadAccount=async()=>{
     try{
-      const response=await fetch("/api/auth/me",{credentials:"include",cache:"no-store"});
+      const response=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store"});
       if(!response.ok)return;
       const data=await response.json();
       const user=data.user||{};
@@ -652,7 +653,7 @@ Error generating stack: `+o.message+`
       btn.addEventListener("click",async event=>{
         event.preventDefault();
         event.stopPropagation();
-        try{await fetch("/api/auth/logout",{method:"POST",credentials:"include"});}catch{}
+        try{await fetch(apiBase()+"/api/auth/logout",{method:"POST",credentials:"include"});}catch{}
         window.location.reload();
       },true);
     });
