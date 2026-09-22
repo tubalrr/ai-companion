@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -21,15 +23,17 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn("OPENAI_API_KEY is not set. Add it to server/.env before starting the server.");
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
-const allowedOrigin = process.env.FRONTEND_ORIGIN || true;
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "").split(",").map(x => x.trim()).filter(Boolean);
 app.use(cors({
-  origin: allowedOrigin,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin not allowed"));
+  },
   credentials: true
 }));
 app.use((req,res,next)=>{
@@ -92,7 +96,7 @@ async function requireAuth(req,res,next){
   }catch(e){ return res.status(401).json({error:"Invalid or expired session"}); }
 }
 
-app.post("/api/auth/register",async(req,res)=>{
+app.post("/api/auth/register", authLimiter, async(req,res)=>{
   try{
     if(!pool) return res.status(503).json({error:"Database is not configured"});
     const email=String(req.body?.email||"").trim().toLowerCase();
@@ -110,7 +114,7 @@ app.post("/api/auth/register",async(req,res)=>{
   }
 });
 
-app.post("/api/auth/login",async(req,res)=>{
+app.post("/api/auth/login", authLimiter, async(req,res)=>{
   try{
     if(!pool) return res.status(503).json({error:"Database is not configured"});
     const email=String(req.body?.email||"").trim().toLowerCase();
@@ -136,7 +140,7 @@ app.get("/api/auth/me",async(req,res)=>{
   }catch(e){res.status(401).json({error:"Not logged in"});}
 });
 
-app.post("/api/auth/logout",(_req,res)=>{
+app.post("/api/auth/logout",authLimiter,(_req,res)=>{
   res.clearCookie("ai_companion_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/"});
   res.json({ok:true});
 });
@@ -190,6 +194,9 @@ app.post("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
 
 
 
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false });
+const chatLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false });
+
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: Boolean(process.env.OPENAI_API_KEY),
@@ -198,7 +205,7 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", requireAuth, chatLimiter, async (req, res) => {
   try {
     const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
     if (!messages.length) {
@@ -212,6 +219,8 @@ app.post("/api/chat", async (req, res) => {
         role: m.role,
         content: String(m.content || "").slice(0, 12000)
       }));
+
+    if (!openai) return res.status(503).json({ error: "AI service is not configured" });
 
     const response = await openai.responses.create({
       model,
