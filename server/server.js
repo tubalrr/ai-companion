@@ -42,13 +42,31 @@ app.use((req,res,next)=>{
 async function initAuthDb(){
   if(!pool) return;
   await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
     CREATE TABLE IF NOT EXISTS users (
       id BIGSERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       display_name TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
+    );
+    CREATE TABLE IF NOT EXISTS conversations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id BIGSERIAL PRIMARY KEY,
+      conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK (role IN ('user','assistant')),
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS conversations_user_updated_idx ON conversations(user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(conversation_id, id);
   `);
 }
 function signUser(user){
@@ -122,6 +140,55 @@ app.post("/api/auth/logout",(_req,res)=>{
   res.clearCookie("ai_companion_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/"});
   res.json({ok:true});
 });
+ 
+app.get("/api/conversations", requireAuth, async (req,res)=>{
+  try{
+    const result=await pool.query(
+      "SELECT id,title,created_at,updated_at FROM conversations WHERE user_id=$1 ORDER BY updated_at DESC LIMIT 100",
+      [req.user.id]
+    );
+    res.json({ok:true,conversations:result.rows});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not load conversations"});}
+});
+
+app.post("/api/conversations", requireAuth, async (req,res)=>{
+  try{
+    const title=String(req.body?.title||"New conversation").trim().slice(0,200)||"New conversation";
+    const result=await pool.query(
+      "INSERT INTO conversations(user_id,title) VALUES($1,$2) RETURNING id,title,created_at,updated_at",
+      [req.user.id,title]
+    );
+    res.status(201).json({ok:true,conversation:result.rows[0]});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not create conversation"});}
+});
+
+app.get("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
+  try{
+    const result=await pool.query(
+      "SELECT m.id,m.role,m.content,m.created_at FROM messages m JOIN conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.user_id=$2 ORDER BY m.id ASC",
+      [req.params.id,req.user.id]
+    );
+    res.json({ok:true,messages:result.rows});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not load messages"});}
+});
+
+app.post("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
+  try{
+    const role=req.body?.role;
+    const content=String(req.body?.content||"").trim();
+    if(role!=="user"&&role!=="assistant"||!content) return res.status(400).json({error:"Valid role and content are required"});
+    const owned=await pool.query("SELECT id FROM conversations WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);
+    if(!owned.rows[0]) return res.status(404).json({error:"Conversation not found"});
+    const result=await pool.query(
+      "INSERT INTO messages(conversation_id,user_id,role,content) VALUES($1,$2,$3,$4) RETURNING id,role,content,created_at",
+      [req.params.id,req.user.id,role,content]
+    );
+    await pool.query("UPDATE conversations SET updated_at=NOW() WHERE id=$1",[req.params.id]);
+    res.status(201).json({ok:true,message:result.rows[0]});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not save message"});}
+});
+
+
 
 app.get("/api/health", (_req, res) => {
   res.json({
