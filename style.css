@@ -134,3 +134,141 @@ input[placeholder*="Ask anything"]::-webkit-search-cancel-button{
     min-width:0 !important;
   }
 }
+
+
+/* Refined AI chat composer — clean, balanced, premium */
+[data-ai-composer="true"]{
+  padding-top:26px !important;
+  padding-bottom:18px !important;
+}
+[data-ai-composer="true"] > div{
+  max-width:720px !important;
+}
+[data-ai-composer="true"] .group.relative.rounded-\[24px\]{
+  border-radius:20px !important;
+  background:linear-gradient(180deg,rgba(25,28,48,.94),rgba(14,17,31,.94)) !important;
+  border:1px solid rgba(255,255,255,.11) !important;
+  box-shadow:0 18px 55px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.09) !important;
+  overflow:hidden;
+}
+[data-ai-composer="true"] .group.relative.rounded-\[24px\]:focus-within{
+  border-color:rgba(167,139,250,.48) !important;
+  box-shadow:0 20px 60px rgba(0,0,0,.50),0 0 0 3px rgba(139,92,246,.10),0 0 32px rgba(99,102,241,.12),inset 0 1px 0 rgba(255,255,255,.11) !important;
+  transform:translateY(-1px);
+}
+[data-ai-composer="true"] .relative.flex.items-center{
+  height:64px !important;
+  padding:6px 8px !important;
+  gap:8px !important;
+}
+[data-ai-composer="true"] .relative.flex.items-center > button:first-child{
+  width:42px !important;
+  height:42px !important;
+  flex:0 0 42px !important;
+  margin-left:0 !important;
+  border-radius:13px !important;
+  background:rgba(255,255,255,.055) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  color:rgba(255,255,255,.48) !important;
+}
+[data-ai-composer="true"] .relative.flex.items-center > button:first-child:hover{
+  background:rgba(139,92,246,.14) !important;
+  border-color:rgba(167,139,250,.25) !important;
+  color:rgba(255,255,255,.9) !important;
+}
+[data-ai-composer="true"] input[placeholder*="Ask anything"]{
+  height:48px !important;
+  min-height:48px !important;
+  border:0 !important;
+  outline:0 !important;
+  box-shadow:none !important;
+  background:transparent !important;
+  padding:0 8px !important;
+  font-size:15px !important;
+  line-height:48px !important;
+}
+[data-ai-composer="true"] input[placeholder*="Ask anything"]:focus{
+  border:0 !important;
+  outline:0 !important;
+  box-shadow:none !important;
+}
+[data-ai-composer="true"] input[placeholder*="Ask anything"]::selection{
+  background:rgba(139,92,246,.32);
+}
+[data-ai-composer="true"] .relative.flex.items-center > div:last-child{
+  gap:6px !important;
+  padding-right:0 !important;
+}
+[data-ai-composer="true"] .relative.flex.items-center > div:last-child button:first-child{
+  width:38px !important;
+  height:38px !important;
+}
+[data-ai-composer="true"] .relative.flex.items-center > div:last-child button:last-child{
+  width:44px !important;
+  height:44px !important;
+  flex:0 0 44px !important;
+  border-radius:14px !important;
+}
+[data-ai-composer="true"] > div > div.flex.items-center.justify-between{
+  min-height:27px;
+  padding:1px 10px 0 !important;
+}
+[data-ai-composer="true"] > div > div.flex.items-center.justify-between span{
+  letter-spacing:0 !important;
+}
+[data-ai-composer="true"] > div > div.mt-3{
+  margin-top:9px !important;
+  opacity:.65;
+}
+@media (max-width:640px){
+  [data-ai-composer="true"]{
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    padding:10px 10px calc(9px + env(safe-area-inset-bottom)) !important;
+    background:linear-gradient(to top,rgba(8,10,20,.98) 55%,rgba(8,10,20,.78),transparent) !important;
+    z-index:60 !important;
+  }
+  [data-ai-composer="true"] .group.relative.rounded-\[24px\]{
+    border-radius:18px !important;
+  }
+  [data-ai-composer="true"] .relative.flex.items-center{
+    height:58px !important;
+    padding:5px 6px !important;
+  }
+  [data-ai-composer="true"] .relative.flex.items-center > button:first-child{
+    width:40px !important;
+    height:40px !important;
+    flex-basis:40px !important;
+    border-radius:12px !important;
+  }
+  [data-ai-composer="true"] input[placeholder*="Ask anything"]{
+    height:46px !important;
+    min-height:46px !important;
+    line-height:46px !important;
+    font-size:16px !important;
+    padding:0 5px !important;
+  }
+  [data-ai-composer="true"] .relative.flex.items-center > div:last-child button:last-child{
+    width:42px !important;
+    height:42px !important;
+    flex-basis:42px !important;
+    border-radius:13px !important;
+  }
+  [data-ai-composer="true"] > div > div.flex.items-center.justify-between{
+    display:none !important;
+  }
+  [data-ai-composer="true"] > div > div.mt-3{
+    display:none !important;
+  }
+}
+@media (max-width:380px){
+  [data-ai-composer="true"]{
+    padding-left:7px !important;
+    padding-right:7px !important;
+  }
+  [data-ai-composer="true"] input[placeholder*="Ask anything"]{
+    font-size:15px !important;
+  }
+}
