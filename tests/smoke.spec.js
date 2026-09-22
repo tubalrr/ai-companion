@@ -27,11 +27,16 @@ test.describe("AI Companion page smoke tests", () => {
     });
   }
 
-  test("homepage buttons are visible and enabled", async ({ page }) => {
+  test("homepage visible buttons are enabled", async ({ page }) => {
     await page.goto("/index.html", { waitUntil: "networkidle" });
-    const buttons = page.locator("button");
+
+    // The homepage contains hidden modal/dialog controls that are intentionally
+    // unavailable until their parent UI is opened. Smoke-test only visible UI.
+    const buttons = page.locator("button:visible");
     const count = await buttons.count();
+
     expect(count).toBeGreaterThan(0);
+
     for (let i = 0; i < count; i++) {
       await expect(buttons.nth(i)).toBeVisible();
       await expect(buttons.nth(i)).toBeEnabled();
