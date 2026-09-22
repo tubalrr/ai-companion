@@ -59,3 +59,50 @@
     padding:13px !important;
   }
 }
+
+/* AI composer polish */
+input[placeholder*="Ask anything"]{
+  min-width:0;
+  caret-color:#a78bfa;
+  -webkit-tap-highlight-color:transparent;
+}
+input[placeholder*="Ask anything"]::placeholder{
+  color:rgba(255,255,255,.34) !important;
+}
+input[placeholder*="Ask anything"]:focus{
+  color:#fff !important;
+}
+input[placeholder*="Ask anything"]::-webkit-search-cancel-button{
+  display:none;
+}
+@media (min-width:641px){
+  input[placeholder*="Ask anything"]{
+    font-size:15px !important;
+  }
+}
+@media (max-width:640px){
+  /* Keep the composer comfortable above the phone edge and thumb-friendly. */
+  input[placeholder*="Ask anything"]{
+    font-size:16px !important;
+    padding-left:8px !important;
+    padding-right:4px !important;
+  }
+  input[placeholder*="Ask anything"] + div button:last-child{
+    width:42px !important;
+    height:42px !important;
+    flex:0 0 42px;
+  }
+  /* The mic/add controls are large enough to tap without crowding the input. */
+  input[placeholder*="Ask anything"] ~ div{
+    gap:6px !important;
+  }
+  /* Composer shell: slightly tighter, brighter focus ring, less visual weight. */
+  input[placeholder*="Ask anything"]{
+    height:52px !important;
+  }
+}
+@media (max-width:380px){
+  input[placeholder*="Ask anything"]{
+    font-size:15.5px !important;
+  }
+}
