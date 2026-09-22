@@ -380,3 +380,39 @@ Error generating stack: `+o.message+`
     }
   },false);
 })();
+
+/* Guaranteed homepage card controls */
+(function(){
+  const prompts={
+    "Plan my day":"Help me plan my day and organize my priorities.",
+    "Get creative":"Give me creative ideas.",
+    "Teach me":"Teach me something step by step.",
+    "Help me write":"Help me write and improve something.",
+    "What’s on your mind?":"Help me think through this.",
+    "What's on your mind?":"Help me think through this."
+  };
+  function wire(){
+    document.querySelectorAll("button").forEach(btn=>{
+      if(btn.dataset.aiCompanionWired==="1") return;
+      const text=(btn.innerText||btn.textContent||"").replace(/\s+/g," ").trim();
+      if(!prompts[text]) return;
+      btn.dataset.aiCompanionWired="1";
+      btn.style.cursor="pointer";
+      btn.addEventListener("click",function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const el=document.querySelector('input[placeholder*="Ask anything"]');
+        if(!el)return;
+        const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+        if(setter)setter.call(el,prompts[text]); else el.value=prompts[text];
+        el.dispatchEvent(new Event("input",{bubbles:true}));
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+        el.focus();
+      },false);
+    });
+  }
+  const start=()=>{wire();const root=document.getElementById("root");if(root){
+    new MutationObserver(wire).observe(root,{childList:true,subtree:true});
+  }};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else setTimeout(start,100);
+})();
