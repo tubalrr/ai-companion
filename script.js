@@ -198,8 +198,16 @@ Error generating stack: `+o.message+`
     try{
       const auth=await fetch("/api/auth/me",{credentials:"include",cache:"no-store"});
       if(auth.status===401){
-        const go=confirm("Log in or create an account to start chatting with AI.\\n\\nOpen the login page now?");
-        if(go)window.location.href="pages/login.html?return=index.html";
+        let modal=document.getElementById("ai-auth-modal");
+        if(!modal){
+          modal=document.createElement("div");
+          modal.id="ai-auth-modal";
+          modal.style.cssText="position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:rgba(4,6,15,.72);backdrop-filter:blur(12px)";
+          modal.innerHTML='<div role="dialog" aria-modal="true" style="width:min(430px,100%);padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(21,25,39,.98);box-shadow:0 30px 100px rgba(0,0,0,.55);color:#fff;font-family:system-ui,sans-serif;text-align:center"><div style="width:52px;height:52px;margin:0 auto 16px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#8b5cf6,#3b82f6);font-size:24px">✦</div><h2 style="margin:0 0 8px;font-size:24px">Log in to continue</h2><p style="margin:0;color:rgba(255,255,255,.55);line-height:1.6">Create an account or log in to start chatting with your AI Companion.</p><div style="display:grid;gap:10px;margin-top:22px"><a href="pages/login.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;text-decoration:none;font-weight:700">Log in</a><a href="pages/signup.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;text-decoration:none;font-weight:600">Create account</a><button type="button" data-auth-close style="padding:10px;border:0;background:transparent;color:rgba(255,255,255,.45);cursor:pointer">Not now</button></div></div>';
+          document.body.appendChild(modal);
+          modal.querySelector("[data-auth-close]").onclick=()=>modal.remove();
+          modal.addEventListener("click",e=>{if(e.target===modal)modal.remove()});
+        }
         return;
       }
       if(!auth.ok){
