@@ -152,6 +152,7 @@ Error generating stack: `+o.message+`
     }catch(_){}
   };
 
+  window.aiCompanionLoadCloudRecent=loadCloudRecent;
   const openCloudConversation=async(id,title)=>{
     try{
       const data=await cloudFetch("/api/conversations/"+encodeURIComponent(id)+"/messages");
@@ -587,7 +588,7 @@ Error generating stack: `+o.message+`
   wire();
   const root=document.getElementById("root");
   if(root)new MutationObserver(wire).observe(root,{childList:true,subtree:true});
-  setTimeout(loadCloudRecent,900);
+  setTimeout(()=>window.aiCompanionLoadCloudRecent?.(),900);
   setTimeout(wire,100);
   setTimeout(wire,500);
   setTimeout(wire,1200);
