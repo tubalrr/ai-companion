@@ -17,14 +17,17 @@ async function getMe(){
 }
 async function updateAuth(){
   const user=await getMe();
-  const logged=!!user;
-  authAction.innerHTML=logged?"↪ <span>Log out</span>":"↪ <span>Log in</span>";
-  authAction.classList.toggle("logged",logged);
-  if(user){
-    const n=user.display_name||"AI User";
-    nameEl.value=n; heading.textContent=n; initials.textContent=n.slice(0,2).toUpperCase();
-    localStorage.setItem("aiProfileName",n);
+  if(!user){
+    // Profile is private: only authenticated accounts can access it.
+    document.body.innerHTML='<main style="min-height:100vh;display:grid;place-items:center;padding:20px;background:#080a14;color:#fff;font-family:system-ui,sans-serif;text-align:center"><section style="width:min(420px,100%);padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:#151927"><div style="font-size:30px;margin-bottom:12px">🔐</div><h1 style="margin:0 0 10px">Login required</h1><p style="color:rgba(255,255,255,.55);line-height:1.6">Please log in or create an account before accessing your profile.</p><a href="login.html?return=profile.html" style="display:block;margin-top:18px;padding:13px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;text-decoration:none;font-weight:700">Log in</a><a href="signup.html?return=profile.html" style="display:block;margin-top:10px;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);color:#fff;text-decoration:none">Create account</a></section></main>';
+    return null;
   }
+  const logged=true;
+  authAction.innerHTML="↪ <span>Log out</span>";
+  authAction.classList.add("logged");
+  const n=user.display_name||"AI User";
+  nameEl.value=n; heading.textContent=n; initials.textContent=n.slice(0,2).toUpperCase();
+  localStorage.setItem("aiProfileName",n);
   return user;
 }
 authAction.onclick=async()=>{
