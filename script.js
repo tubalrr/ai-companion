@@ -159,10 +159,10 @@ Error generating stack: `+o.message+`
     menu.dataset.profileMenu="true";
     menu.style.cssText="position:absolute;right:16px;bottom:64px;width:190px;padding:6px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(18,20,34,.98);backdrop-filter:blur(22px);box-shadow:0 18px 45px rgba(0,0,0,.45);z-index:1000";
     menu.innerHTML=
-      '<button data-menu-action="profile" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Profile</button>'+
-      '<button data-menu-action="settings" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Settings</button>'+
-      '<button data-menu-action="help" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Help</button>'+
-      '<button data-menu-action="login" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Log in</button>';
+      '<button data-menu-action="profile" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(139,92,246,.12);color:#a78bfa">◎</span><span>Profile</span></button>'+
+      '<button data-menu-action="settings" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(59,130,246,.12);color:#60a5fa">⚙</span><span>Settings</span></button>'+
+      '<button data-menu-action="help" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(6,182,212,.12);color:#22d3ee">?</span><span>Help</span></button>'+
+      '<button data-menu-action="login" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(52,211,153,.12);color:#34d399">↪</span><span>Log in</span></button>';
     parent.style.position="relative";
     parent.appendChild(menu);
 
