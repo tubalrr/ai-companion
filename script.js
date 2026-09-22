@@ -416,3 +416,53 @@ Error generating stack: `+o.message+`
   }};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else setTimeout(start,100);
 })();
+
+/* Final homepage suggestion-card interaction + visibility fix */
+(function(){
+  const promptMap={
+    "Plan my day":"Help me plan my day and organize my priorities.",
+    "Get creative":"Give me creative ideas.",
+    "Teach me":"Teach me something step by step.",
+    "Help me write":"Help me write and improve something.",
+    "What's on your mind?":"Help me think through this.",
+    "What’s on your mind?":"Help me think through this."
+  };
+  const clean=s=>(s||"").replace(/\s+/g," ").trim();
+  const findInput=()=>document.querySelector('input[placeholder*="Ask anything"]');
+  const put=(value)=>{
+    const el=findInput();
+    if(!el)return;
+    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+    if(setter)setter.call(el,value);else el.value=value;
+    el.dispatchEvent(new Event("input",{bubbles:true}));
+    el.dispatchEvent(new Event("change",{bubbles:true}));
+    el.focus();
+  };
+  const wire=()=>{
+    document.querySelectorAll("button").forEach(btn=>{
+      const label=clean(btn.innerText||btn.textContent);
+      if(!promptMap[label])return;
+      btn.dataset.aiSuggestion="true";
+      btn.style.setProperty("pointer-events","auto","important");
+      btn.style.setProperty("cursor","pointer","important");
+      btn.querySelectorAll("*").forEach(child=>{
+        if(child.tagName==="DIV"||child.tagName==="SPAN"||child.tagName==="SVG"||child.tagName==="PATH")
+          child.style.setProperty("pointer-events","none","important");
+      });
+      btn.onclick=(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        put(promptMap[label]);
+      };
+    });
+  };
+  const css=document.createElement("style");
+  css.textContent='[data-ai-suggestion="true"]{pointer-events:auto!important;cursor:pointer!important;} [data-ai-suggestion="true"] .absolute{pointer-events:none!important;} [data-ai-suggestion="true"] .text-white\/90,[data-ai-suggestion="true"] .text-white\/40{opacity:1!important;}';
+  document.head.appendChild(css);
+  wire();
+  const root=document.getElementById("root");
+  if(root)new MutationObserver(wire).observe(root,{childList:true,subtree:true});
+  setTimeout(wire,100);
+  setTimeout(wire,500);
+  setTimeout(wire,1200);
+})();
