@@ -545,6 +545,18 @@ Error generating stack: `+o.message+`
     "What’s on your mind?":"Help me think through this.",
     "What's on your mind?":"Help me think through this."
   };
+  const titles=new Set(Object.keys(prompts));
+  const markCards=()=>{
+    document.querySelectorAll("button").forEach(btn=>{
+      const label=(btn.innerText||btn.textContent||"").replace(/\\s+/g," ").trim();
+      if(!titles.has(label))return;
+      btn.classList.add("ai-suggestion-card");
+    });
+    document.querySelectorAll(".ai-suggestion-logo").forEach(el=>el.remove());
+  };
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",markCards,{once:true});
+  else requestAnimationFrame(markCards);
+
   const put=(value)=>{
     const el=document.querySelector('input[placeholder*="Ask anything"]');
     if(!el)return;
