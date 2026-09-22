@@ -60,6 +60,33 @@ Error generating stack: `+o.message+`
   window.aiCompanionRenderRecent=render;
   render();
 })();
+/* Authentication gate: the AI workspace requires a real signed-in account. */
+(function(){
+  const loginPath="pages/login.html";
+  const overlay=document.createElement("div");
+  overlay.id="auth-gate";
+  overlay.style.cssText="position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:rgba(8,10,20,.96);backdrop-filter:blur(18px);color:#fff;font:14px system-ui,sans-serif";
+  overlay.innerHTML='<div style="width:min(420px,calc(100% - 32px));padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(21,25,39,.96);box-shadow:0 30px 90px rgba(0,0,0,.5);text-align:center"><div style="font-size:28px;margin-bottom:10px">🔐</div><h2 style="margin:0 0 8px;font-size:22px">Sign in required</h2><p id="auth-gate-message" style="margin:0;color:rgba(255,255,255,.55);line-height:1.6">Checking your account…</p><a id="auth-gate-login" href="'+loginPath+'" style="display:none;margin-top:18px;padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;text-decoration:none;font-weight:700">Log in / Sign up</a></div>';
+  document.body.appendChild(overlay);
+  const message=overlay.querySelector("#auth-gate-message");
+  const login=overlay.querySelector("#auth-gate-login");
+  fetch("/api/auth/me",{credentials:"include",cache:"no-store"})
+    .then(async response=>{
+      if(response.ok){
+        overlay.remove();
+        return;
+      }
+      if(response.status===401){
+        window.location.replace(loginPath+"?return=index.html");
+        return;
+      }
+      throw new Error("Authentication service unavailable");
+    })
+    .catch(()=>{
+      message.textContent="Please connect the secure AI backend and sign in before using AI Companion.";
+      login.style.display="inline-block";
+    });
+})();
 /* Functional controls for the reference UI. */
 (function(){
   const routes={
