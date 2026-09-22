@@ -208,3 +208,145 @@ form:focus-within{
   html{scroll-behavior:auto}
   *,*:before,*:after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
+
+
+/* Mobile-first refinement — AI Companion
+   Optimized for 320–600px screens without changing desktop behavior. */
+@media (max-width: 640px){
+  html,body{width:100%;min-width:0;overflow-x:hidden}
+  body{
+    -webkit-text-size-adjust:100%;
+    overscroll-behavior-x:none;
+  }
+
+  /* Compact mobile header */
+  main .h-\[64px\]{
+    height:58px !important;
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+  main .h-\[64px\] button.lg\:hidden{
+    width:38px !important;
+    height:38px !important;
+    border-radius:12px !important;
+    background:rgba(255,255,255,.055) !important;
+    border-color:rgba(255,255,255,.10) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);
+  }
+
+  /* Mobile drawer */
+  aside{
+    width:min(86vw,320px) !important;
+    max-width:320px !important;
+  }
+  aside > div{
+    border-radius:0 22px 22px 0 !important;
+  }
+
+  /* Give the home screen breathing room */
+  main{
+    min-width:0 !important;
+  }
+  main > div{
+    min-width:0;
+  }
+  main .max-w-\[860px\]{
+    width:calc(100% - 24px) !important;
+    max-width:none !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+  }
+
+  /* Smaller hero on phones */
+  main .text-\[56px\]{
+    font-size:clamp(32px,9.5vw,42px) !important;
+    line-height:1.04 !important;
+    letter-spacing:-.045em !important;
+  }
+  main .text-\[16px\]{
+    font-size:14px !important;
+    line-height:1.55 !important;
+  }
+
+  /* Suggestion cards: clean 2 × 2 mobile layout */
+  [data-ai-suggestion="true"]{
+    min-height:118px !important;
+    padding:14px !important;
+    border-radius:17px !important;
+  }
+  [data-ai-suggestion="true"] .ai-suggestion-logo,
+  .ai-suggestion-logo{
+    width:36px !important;
+    height:36px !important;
+    margin-bottom:10px !important;
+    border-radius:11px !important;
+  }
+  [data-ai-suggestion="true"] svg{
+    max-width:20px;
+    max-height:20px;
+  }
+
+  /* Composer: larger touch target, less wasted space */
+  main form{
+    width:calc(100% - 24px) !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    border-radius:20px !important;
+    padding:8px !important;
+  }
+  main form textarea{
+    min-height:46px !important;
+    max-height:120px !important;
+    font-size:16px !important; /* prevents iOS/Android zoom on focus */
+    line-height:1.4 !important;
+    padding:10px 9px !important;
+  }
+  main form button{
+    min-width:42px;
+    min-height:42px;
+  }
+
+  /* Make the mobile drawer easier to use */
+  aside button{
+    min-height:44px;
+  }
+  aside .p-3.mt-auto{
+    padding-bottom:max(12px,env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Touch-friendly modal / popover surfaces */
+  [role="dialog"],.modal-card{
+    width:calc(100vw - 24px) !important;
+    max-width:none !important;
+    max-height:calc(100dvh - 24px) !important;
+    overflow:auto !important;
+    border-radius:20px !important;
+  }
+
+  /* Respect phones with a bottom safe area */
+  main{
+    padding-bottom:max(12px,env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 380px){
+  [data-ai-suggestion="true"]{
+    min-height:108px !important;
+    padding:12px !important;
+  }
+  [data-ai-suggestion="true"] .text-sm{
+    font-size:13px !important;
+  }
+  main .text-\[56px\]{
+    font-size:31px !important;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference){
+  [data-ai-suggestion="true"]:active{
+    transform:scale(.985) !important;
+  }
+  main form:focus-within{
+    transform:translateY(-1px);
+  }
+}
