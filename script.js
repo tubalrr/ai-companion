@@ -28,17 +28,37 @@ Error generating stack: `+o.message+`
 (function(){function m(a){var h=a.getAttribute("href");if(!h)return;try{var u=new URL(h,document.baseURI);if((u.protocol==="http:"||u.protocol==="https:")&&u.host!==location.host){a.target="_blank";a.rel="noopener noreferrer";}}catch(e){}}function s(){document.querySelectorAll("a[href]").forEach(m);}if(document.readyState!=="loading"){s();}else{document.addEventListener("DOMContentLoaded",s);}document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a){m(a);}},true);})();
 
 
-/* Local Recent: every sent prompt is saved into Recent conversations. */
+/* Real local Recent: only conversations created by the user are shown. */
 (function(){
   const KEY="aiCompanionRecentConversations";
-  const defaults=[{title:"Brand identity exploration",time:"2m ago"},{title:"Q4 roadmap planning",time:"1h ago"},{title:"Write blog post about AI",time:"Yesterday"},{title:"Fix hydration error in Next.js",time:"2d ago"}];
   const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
   const get=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return []}};
   const save=a=>localStorage.setItem(KEY,JSON.stringify(a.slice(0,50)));
-  const ensure=()=>{if(!localStorage.getItem(KEY))save(defaults)};
-  function render(){const container=document.querySelector(".space-y-1");if(!container)return;ensure();container.innerHTML=get().map(item=>'<div class="relative group" data-local-recent="true"><button class="w-full text-left px-2.5 py-2.5 pr-10 rounded-[10px] hover:bg-white/[0.04] group transition-colors"><div class="text-[12.5px] leading-[1.35] text-white/55 group-hover:text-white/80 truncate tracking-[-0.01em]">'+esc(item.title)+'</div><div class="text-[11px] text-white/25 mt-1">'+esc(item.time||"Just now")+'</div></button><button title="Conversation actions" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-[8px] bg-transparent opacity-0 group-hover:opacity-100 focus:opacity-100 text-white/45 hover:text-white hover:bg-white/[0.08] transition-all duration-150 flex items-center justify-center z-20"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>').join("")}
-  window.aiCompanionAddRecent=title=>{title=String(title||"").trim();if(!title)return;ensure();save([{title,time:"Just now"},...get().filter(x=>x.title.toLowerCase()!==title.toLowerCase())]);render()};
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render);else setTimeout(render,0);
+  const render=()=>{
+    const container=document.querySelector(".space-y-1");
+    if(!container)return;
+    const list=get();
+    if(!list.length){
+      container.innerHTML='<div class="px-2.5 py-4 text-[11px] text-white/25 text-center">No recent conversations</div>';
+      return;
+    }
+    container.innerHTML=list.map(item=>'<div class="relative group" data-local-recent="true">'+
+      '<button class="w-full text-left px-2.5 py-2.5 pr-10 rounded-[10px] hover:bg-white/[0.04] group transition-colors">'+
+      '<div class="text-[12.5px] leading-[1.35] text-white/55 group-hover:text-white/80 truncate tracking-[-0.01em]">'+esc(item.title)+'</div>'+
+      '<div class="text-[11px] text-white/25 mt-1">'+esc(item.time||"Just now")+'</div></button>'+
+      '<button title="Conversation actions" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-[8px] bg-transparent opacity-0 group-hover:opacity-100 focus:opacity-100 text-white/45 hover:text-white hover:bg-white/[0.08] transition-all duration-150 flex items-center justify-center z-20">'+
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>').join("");
+  };
+  window.aiCompanionAddRecent=title=>{
+    title=String(title||"").trim();
+    if(!title)return;
+    const list=get().filter(x=>x.title.toLowerCase()!==title.toLowerCase());
+    list.unshift({title,time:"Just now"});
+    save(list);
+    render();
+  };
+  window.aiCompanionRenderRecent=render;
+  render();
 })();
 /* Functional controls for the reference UI. */
 (function(){
