@@ -102,6 +102,72 @@ Error generating stack: `+o.message+`
 
   const history=[];
   let sending=false;
+  let cloudConversationId=null;
+
+  const cloudFetch=async(path,options={})=>{
+    const response=await fetch(path,{credentials:"include",...options});
+    if(response.status===401)return null;
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||"Cloud sync failed");
+    return data;
+  };
+
+  const ensureCloudConversation=async(title)=>{
+    if(cloudConversationId)return cloudConversationId;
+    const me=await cloudFetch("/api/auth/me");
+    if(!me?.ok)return null;
+    const data=await cloudFetch("/api/conversations",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({title})
+    });
+    cloudConversationId=data?.conversation?.id||null;
+    return cloudConversationId;
+  };
+
+  const saveCloudMessage=async(role,content)=>{
+    if(!cloudConversationId)return;
+    await cloudFetch("/api/conversations/"+encodeURIComponent(cloudConversationId)+"/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({role,content})
+    });
+  };
+
+  const loadCloudRecent=async()=>{
+    try{
+      const data=await cloudFetch("/api/conversations");
+      if(!data?.conversations||!window.aiCompanionAddRecent)return;
+      data.conversations.slice(0,50).forEach(item=>{
+        const key="aiCompanionRecentConversations";
+        try{
+          const list=JSON.parse(localStorage.getItem(key)||"[]");
+          if(!list.some(x=>x.title===item.title)){
+            list.push({title:item.title,time:new Date(item.updated_at).toLocaleDateString()});
+            localStorage.setItem(key,JSON.stringify(list.slice(0,50)));
+          }
+        }catch(_){}
+      });
+      window.aiCompanionRenderRecent?.();
+    }catch(_){}
+  };
+
+  const openCloudConversation=async(id,title)=>{
+    try{
+      const data=await cloudFetch("/api/conversations/"+encodeURIComponent(id)+"/messages");
+      if(!data)return;
+      cloudConversationId=id;
+      history.length=0;
+      document.getElementById("ai-live-messages")?.remove();
+      data.messages.forEach(m=>{
+        history.push({role:m.role,content:m.content});
+        renderMessage(m.role,m.content);
+      });
+      document.title=title+" • AI Companion";
+    }catch(error){
+      toast(error.message);
+    }
+  };
 
   const renderMessage=(role,text)=>{
     const root=document.getElementById("root");
@@ -128,6 +194,8 @@ Error generating stack: `+o.message+`
     sending=true;
     renderMessage("user",textValue);
     history.push({role:"user",content:textValue});
+    await ensureCloudConversation(textValue);
+    await saveCloudMessage("user",textValue);
     if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(textValue);
     const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
     if(setter)setter.call(el,"");else el.value="";
@@ -142,6 +210,7 @@ Error generating stack: `+o.message+`
       if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
       const answer=String(data.text||"").trim()||"The AI returned an empty response.";
       history.push({role:"assistant",content:answer});
+      await saveCloudMessage("assistant",answer);
       renderMessage("assistant",answer);
     }catch(error){
       renderMessage("assistant","AI backend error: "+error.message);
@@ -206,6 +275,19 @@ Error generating stack: `+o.message+`
         sendMessage();
       }
     }
+  },true);
+
+  document.addEventListener("click",async(event)=>{
+    const local=event.target.closest("[data-local-recent='true'] > button:not([title='Conversation actions'])");
+    if(!local)return;
+    const wrap=local.closest("[data-local-recent='true']");
+    const title=wrap?.querySelector("div")?.textContent?.trim();
+    if(!title)return;
+    try{
+      const data=await cloudFetch("/api/conversations");
+      const found=data?.conversations?.find(x=>x.title===title);
+      if(found){event.preventDefault();event.stopPropagation();await openCloudConversation(found.id,title);}
+    }catch(_){}
   },true);
 
   document.addEventListener("keydown",(event)=>{
@@ -505,6 +587,7 @@ Error generating stack: `+o.message+`
   wire();
   const root=document.getElementById("root");
   if(root)new MutationObserver(wire).observe(root,{childList:true,subtree:true});
+  setTimeout(loadCloudRecent,900);
   setTimeout(wire,100);
   setTimeout(wire,500);
   setTimeout(wire,1200);
