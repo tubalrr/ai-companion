@@ -100,6 +100,58 @@ Error generating stack: `+o.message+`
     el.focus();
   };
 
+  const history=[];
+  let sending=false;
+
+  const renderMessage=(role,text)=>{
+    const root=document.getElementById("root");
+    if(!root)return;
+    let box=document.getElementById("ai-live-messages");
+    if(!box){
+      box=document.createElement("div");
+      box.id="ai-live-messages";
+      box.style.cssText="position:fixed;left:50%;top:120px;transform:translateX(-50%);width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 300px);overflow:auto;z-index:30;display:flex;flex-direction:column;gap:10px;padding:8px 4px 24px;pointer-events:none";
+      root.appendChild(box);
+    }
+    const item=document.createElement("div");
+    item.style.cssText="pointer-events:auto;align-self:"+(role==="user"?"flex-end":"flex-start")+";max-width:88%;padding:12px 15px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:"+(role==="user"?"rgba(99,102,241,.20)":"rgba(20,22,36,.92)")+";backdrop-filter:blur(18px);color:rgba(255,255,255,.9);font:14px/1.55 system-ui,sans-serif;white-space:pre-wrap;box-shadow:0 12px 30px rgba(0,0,0,.22)";
+    item.textContent=text;
+    box.appendChild(item);
+    box.scrollTop=box.scrollHeight;
+  };
+
+  const sendMessage=async()=>{
+    const el=input();
+    if(!el||sending)return;
+    const textValue=el.value.trim();
+    if(!textValue)return;
+    sending=true;
+    renderMessage("user",textValue);
+    history.push({role:"user",content:textValue});
+    if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(textValue);
+    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+    if(setter)setter.call(el,"");else el.value="";
+    el.dispatchEvent(new Event("input",{bubbles:true}));
+    try{
+      const response=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({messages:history})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
+      const answer=String(data.text||"").trim()||"The AI returned an empty response.";
+      history.push({role:"assistant",content:answer});
+      renderMessage("assistant",answer);
+    }catch(error){
+      renderMessage("assistant","AI backend error: "+error.message);
+    }finally{
+      sending=false;
+      el.focus();
+    }
+  };
+
+
   document.addEventListener("click",(event)=>{
     const button=event.target.closest("button");
     if(!button)return;
@@ -144,19 +196,14 @@ Error generating stack: `+o.message+`
       return;
     }
 
-    /* Composer send button: never invent an AI response. */
+    /* Real AI composer: send messages to the backend and render the response. */
     const el=input();
     if(el && label===""){
       const r=button.getBoundingClientRect(), ir=el.getBoundingClientRect();
       if(r.width>=30 && r.width<=55 && r.left>=ir.right-70 && r.top>=ir.top-35 && r.bottom<=ir.bottom+35){
         event.preventDefault();
         event.stopImmediatePropagation();
-        if(!el.value.trim())return;
-        const sentText=el.value.trim();
-        if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(sentText);
-        el.value="";
-        el.dispatchEvent(new Event("input",{bubbles:true}));
-        toast("Saved to Recent. AI backend is not connected yet.");
+        sendMessage();
       }
     }
   },true);
@@ -165,12 +212,8 @@ Error generating stack: `+o.message+`
     const el=event.target;
     if(el && el.matches('input[placeholder*="Ask anything"]') && event.key==="Enter"){
       event.preventDefault();
-      if(!el.value.trim())return;
-      const sentText=el.value.trim();
-      if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(sentText);
-      el.value="";
-      el.dispatchEvent(new Event("input",{bubbles:true}));
-      toast("Saved to Recent. AI backend is not connected yet.");
+      event.stopImmediatePropagation();
+      sendMessage();
     }
   },true);
 })();
