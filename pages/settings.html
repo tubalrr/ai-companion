@@ -1,1 +1,81 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Settings • AI Companion</title><link rel="stylesheet" href="../style.css"><style>.page{min-height:100vh;display:grid;place-items:center;padding:20px;background:#080a12;color:#fff}.card{width:min(650px,100%);padding:36px;border:1px solid #ffffff15;border-radius:24px;background:#151927e8;box-shadow:0 30px 90px #0008}.card h1{margin-top:0}.card p{color:#858ba0;line-height:1.6}.card a{display:inline-block;margin-top:20px;color:#b9b6ff;text-decoration:none}.plan{margin-top:25px;padding:20px;border:1px solid #8b6cff55;border-radius:16px;background:#ffffff06}.plan b,.plan span{display:block}.plan span{color:#858ba0;margin-top:5px;font-size:13px}</style><link rel="stylesheet" href="../assets/css/theme.css"></head><body class="dark"><main class="page"><section class="card"><h1>⚙ Settings</h1><p>Manage your AI Companion preferences.</p><a href="profile.html">← Back to Profile</a></section></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080A14">
+<title>Settings • AI Companion</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<link rel="stylesheet" href="../assets/css/settings.css">
+</head>
+<body class="dark">
+<main class="settings-page">
+  <div class="settings-shell">
+    <header class="settings-top">
+      <div class="settings-brand">
+        <div class="settings-brand-mark">⚙</div>
+        <div>
+          <div class="settings-title">Settings</div>
+          <div class="settings-subtitle">Personalize your AI Companion experience.</div>
+        </div>
+      </div>
+      <a class="settings-back" href="../index.html">← Back to AI Companion</a>
+    </header>
+
+    <div class="settings-layout">
+      <nav class="settings-nav" aria-label="Settings sections">
+        <button data-tab="general"><span class="icon">◉</span>General</button>
+        <button data-tab="appearance"><span class="icon">✦</span>Appearance</button>
+        <button data-tab="ai"><span class="icon">✧</span>AI preferences</button>
+        <button data-tab="account"><span class="icon">◎</span>Account</button>
+        <button data-tab="privacy"><span class="icon">⌁</span>Privacy & data</button>
+      </nav>
+
+      <div class="settings-content">
+        <section class="settings-section" data-section="general">
+          <div class="section-head"><h2>General</h2><p>Control everyday interaction behavior.</p></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Enter to send</div><div class="setting-desc">Use Enter to send messages from the composer.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="enterToSend" aria-label="Toggle Enter to send"></button></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Compact interface</div><div class="setting-desc">Use a tighter layout for smaller screens and denser workflows.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="compact" aria-label="Toggle compact interface"></button></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Interface language</div><div class="setting-desc">Language selection for the application interface.</div></div><div class="setting-control"><select class="setting-select" disabled><option>English</option></select></div></div>
+        </section>
+
+        <section class="settings-section" data-section="appearance">
+          <div class="section-head"><h2>Appearance</h2><p>Make the workspace feel comfortable on your screen.</p></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Theme</div><div class="setting-desc">The current AI Companion interface uses the dark glass theme.</div></div><div class="setting-control"><select class="setting-select" data-setting-select="theme"><option value="dark">Dark</option></select></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Reduce motion</div><div class="setting-desc">Reduce non-essential interface animations.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="reducedMotion" aria-label="Toggle reduced motion"></button></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Interface density</div><div class="setting-desc">Choose compact mode above for a denser workspace.</div></div><div class="setting-control"><span class="badge">Adaptive</span></div></div>
+        </section>
+
+        <section class="settings-section" data-section="ai">
+          <div class="section-head"><h2>AI preferences</h2><p>Configure how AI Companion behaves on this device.</p></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Response sounds</div><div class="setting-desc">Play optional interface sounds when responses are ready.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="sound" aria-label="Toggle response sounds"></button></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Product updates</div><div class="setting-desc">Allow the app to remember your preference for product update notices.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="productUpdates" aria-label="Toggle product updates"></button></div></div>
+          <div class="settings-note">AI responses can be inaccurate or incomplete. Verify important information before relying on it.</div>
+        </section>
+
+        <section class="settings-section" data-section="account">
+          <div class="section-head"><h2>Account</h2><p>Your signed-in account and current plan.</p></div>
+          <div class="account-card">
+            <div class="account-avatar" data-account-avatar>A</div>
+            <div class="account-info"><div class="account-name" data-account-name>Loading account…</div><div class="account-email" data-account-email>Checking session</div></div>
+            <span class="badge" data-account-plan>—</span>
+          </div>
+          <div class="action-row"><a class="settings-btn primary" href="profile.html">Open profile</a><a class="settings-btn" href="upgrade.html">View plans</a><button class="settings-btn danger" data-logout>Log out</button></div>
+        </section>
+
+        <section class="settings-section" data-section="privacy">
+          <div class="section-head"><h2>Privacy & data</h2><p>Manage data stored locally in this browser.</p></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Local conversation cache</div><div class="setting-desc">Recent conversation UI data may be stored in your browser for faster loading.</div></div><div class="setting-control"><span class="badge">Browser only</span></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Clear local data</div><div class="setting-desc">Removes locally cached conversations, pins, and preferences from this browser.</div></div><div class="setting-control"><button class="settings-btn danger" data-clear-local>Clear</button></div></div>
+          <div class="settings-note">This action does not delete cloud account data or database conversations. Those require a separate server-side deletion workflow.</div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="../assets/js/api-config.js"></script>
+<script src="../assets/js/settings.js"></script>
+</body>
+</html>
