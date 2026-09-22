@@ -14,7 +14,7 @@ document.getElementById("login").onclick=async()=>{
   const r=await fetch("../api/auth/login",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
   const d=await r.json();
   if(!r.ok)throw new Error(d.error||"Login failed");
-  location.href="../index.html";
+  const returnTo=new URLSearchParams(location.search).get("return"); location.href=returnTo ? "../"+returnTo.replace(/^\/+/, "") : "../index.html";
  }catch(e){error.textContent=e.message}
 };
 </script></body></html>
