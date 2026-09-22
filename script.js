@@ -134,3 +134,58 @@ Error generating stack: `+o.message+`
     }
   },true);
 })();
+
+
+/* Bottom profile menu */
+(function(){
+  document.addEventListener("click",function(event){
+    const button=event.target.closest("button");
+    if(!button)return;
+    const svg=button.querySelector("svg");
+    if(!svg)return;
+    const circles=[...svg.querySelectorAll("circle")];
+    if(circles.length!==3)return;
+
+    const parent=button.closest(".p-3.mt-auto");
+    if(!parent)return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    let menu=parent.querySelector("[data-profile-menu]");
+    if(menu){ menu.remove(); return; }
+
+    menu=document.createElement("div");
+    menu.dataset.profileMenu="true";
+    menu.style.cssText="position:absolute;right:16px;bottom:64px;width:190px;padding:6px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(18,20,34,.98);backdrop-filter:blur(22px);box-shadow:0 18px 45px rgba(0,0,0,.45);z-index:1000";
+    menu.innerHTML=
+      '<button data-menu-action="profile" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Profile</button>'+
+      '<button data-menu-action="settings" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Settings</button>'+
+      '<button data-menu-action="help" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Help</button>'+
+      '<button data-menu-action="login" style="display:block;width:100%;padding:10px 12px;border:0;background:transparent;color:rgba(255,255,255,.78);text-align:left;border-radius:9px;cursor:pointer">Log in</button>';
+    parent.style.position="relative";
+    parent.appendChild(menu);
+
+    menu.querySelectorAll("[data-menu-action]").forEach(item=>{
+      item.addEventListener("click",function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const routes={
+          profile:"pages/profile.html",
+          settings:"pages/settings.html",
+          help:"pages/help.html",
+          login:"pages/login.html"
+        };
+        location.href=routes[item.dataset.menuAction];
+      });
+    });
+  },true);
+
+  document.addEventListener("click",function(event){
+    document.querySelectorAll("[data-profile-menu]").forEach(menu=>{
+      if(!menu.contains(event.target) && !event.target.closest("button")){
+        menu.remove();
+      }
+    });
+  });
+})();
