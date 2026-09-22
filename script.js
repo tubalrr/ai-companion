@@ -120,6 +120,7 @@ Error generating stack: `+o.message+`
     const prompts={
       "What’s on your mind?":"Help me think through this.",
       "What's on your mind?":"Help me think through this.",
+      "Plan my day":"Help me plan my day and organize my priorities.",
       "Get creative":"Give me creative ideas.",
       "Teach me":"Teach me something step by step.",
       "Help me write":"Help me write and improve something."
