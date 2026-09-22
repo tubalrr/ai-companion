@@ -1,0 +1,25 @@
+name: Build Commercial Release Package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create clean release package
+        run: |
+          rm -rf release-package
+          mkdir release-package
+          rsync -a ./ release-package/             --exclude=".git/"             --exclude=".github/"             --exclude="node_modules/"             --exclude=".env"             --exclude=".env.*"             --exclude="release-package/"             --exclude="*.log"
+          zip -r "AI-Companion-v$(cat VERSION).zip" release-package
+
+      - name: Upload release ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Companion-v${{ github.ref_name }}-package
+          path: AI-Companion-v*.zip
+          if-no-files-found: error
