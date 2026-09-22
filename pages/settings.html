@@ -16,14 +16,10 @@
     <header class="settings-top">
       <div class="settings-brand">
         <div class="settings-brand-mark">⚙</div>
-        <div>
-          <div class="settings-title">Settings</div>
-          <div class="settings-subtitle">Personalize your AI Companion experience.</div>
-        </div>
+        <div><div class="settings-title">Settings</div><div class="settings-subtitle">Control your AI Companion experience.</div></div>
       </div>
-      <a class="settings-back" href="../index.html">← Back to AI Companion</a>
+      <a class="settings-back" href="../index.html">← Back</a>
     </header>
-
     <div class="settings-layout">
       <nav class="settings-nav" aria-label="Settings sections">
         <div class="settings-nav-label">SETTINGS</div>
@@ -36,54 +32,40 @@
         <div class="settings-nav-divider"></div>
         <a href="upgrade.html" class="settings-nav-upgrade">✦ <span>Upgrade plan</span></a>
       </nav>
-
       <div class="settings-content">
         <section class="settings-section" data-section="general">
-          <div class="section-head"><h2>General</h2><p>Manage the basic behavior of AI Companion.</p></div>
+          <div class="section-head"><div class="section-kicker">YOUR WORKSPACE</div><h2>General</h2><p>Manage the basic behavior of AI Companion.</p></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Language</div><div class="setting-desc">Choose the language used throughout the interface.</div></div><div class="setting-control"><select class="setting-select" disabled><option>English</option></select></div></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Enter to send</div><div class="setting-desc">Press Enter to send a message instead of creating a new line.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="enterToSend" aria-label="Toggle Enter to send"></button></div></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Compact mode</div><div class="setting-desc">Use a denser layout for navigation and conversations.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="compact" aria-label="Toggle compact mode"></button></div></div>
         </section>
-
         <section class="settings-section" data-section="personalization">
-          <div class="section-head"><h2>Personalization</h2><p>Customize how AI Companion feels and responds to you.</p></div>
+          <div class="section-head"><div class="section-kicker">HOW IT FEELS</div><h2>Personalization</h2><p>Customize the look and response experience.</p></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Theme</div><div class="setting-desc">Choose the appearance of your AI Companion workspace.</div></div><div class="setting-control"><select class="setting-select" data-setting-select="theme"><option value="dark">Dark</option></select></div></div>
-          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Reduce motion</div><div class="setting-desc">Minimize interface animations.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="reducedMotion"></button></div></div>
-          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Response style</div><div class="setting-desc">More response-style controls can be added as the AI system expands.</div></div><div class="setting-control"><span class="badge">Default</span></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Reduce motion</div><div class="setting-desc">Minimize interface animations and transitions.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="reducedMotion"></button></div></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Response style</div><div class="setting-desc">Response-style controls can be expanded as the AI system grows.</div></div><div class="setting-control"><span class="badge">Default</span></div></div>
         </section>
-
         <section class="settings-section" data-section="notifications">
-          <div class="section-head"><h2>Notifications</h2><p>Choose which product notifications you want to receive.</p></div>
+          <div class="section-head"><div class="section-kicker">STAY UPDATED</div><h2>Notifications</h2><p>Choose which AI Companion notifications you want to receive.</p></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Product updates</div><div class="setting-desc">Receive information about new AI Companion features.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="productUpdates"></button></div></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Response sounds</div><div class="setting-desc">Play a subtle sound when an AI response is ready.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="sound"></button></div></div>
         </section>
-
         <section class="settings-section" data-section="apps">
-          <div class="section-head"><h2>Apps</h2><p>Manage services that AI Companion may connect to in the future.</p></div>
+          <div class="section-head"><div class="section-kicker">CONNECTIONS</div><h2>Apps</h2><p>Connect external services when supported.</p></div>
           <div class="app-placeholder"><div class="app-placeholder-icon">⊞</div><div><strong>Connected apps</strong><p>No external apps are connected yet.</p></div><span class="badge">Coming soon</span></div>
-          <div class="settings-note">Connected apps will only be able to access information after you explicitly authorize the connection.</div>
+          <div class="settings-note">Apps will only access information after you explicitly authorize a connection.</div>
         </section>
-
         <section class="settings-section" data-section="data">
-          <div class="section-head"><h2>Data Controls</h2><p>Control locally stored data and privacy-related preferences.</p></div>
-          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Improve AI Companion</div><div class="setting-desc">Control whether eligible interactions may be used to improve this product. This preference is currently stored locally.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="improveModel"></button></div></div>
+          <div class="section-head"><div class="section-kicker">PRIVACY</div><h2>Data Controls</h2><p>Manage local data and product privacy preferences.</p></div>
+          <div class="setting-row"><div class="setting-copy"><div class="setting-name">Improve AI Companion</div><div class="setting-desc">Choose whether eligible interactions may be used to improve this product. This preference is currently stored locally.</div></div><div class="setting-control"><button class="switch" data-setting-toggle="improveModel"></button></div></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Local conversation cache</div><div class="setting-desc">Recent conversation UI data can be stored in this browser.</div></div><div class="setting-control"><span class="badge">Browser only</span></div></div>
           <div class="setting-row"><div class="setting-copy"><div class="setting-name">Clear local data</div><div class="setting-desc">Remove cached conversations, pins and preferences from this device.</div></div><div class="setting-control"><button class="settings-btn danger" data-clear-local>Clear</button></div></div>
           <div class="settings-note">Clearing local data does not delete cloud conversations from the server database.</div>
         </section>
-
         <section class="settings-section" data-section="account">
-          <div class="section-head"><h2>Account</h2><p>Manage your AI Companion account and subscription.</p></div>
-          <div class="account-card">
-            <div class="account-avatar" data-account-avatar>A</div>
-            <div class="account-info"><div class="account-name" data-account-name>Loading account…</div><div class="account-email" data-account-email>Checking session</div></div>
-            <span class="badge" data-account-plan>—</span>
-          </div>
-          <div class="account-actions">
-            <a class="settings-btn" href="profile.html">Profile</a>
-            <a class="settings-btn primary" href="upgrade.html">Manage plan</a>
-            <button class="settings-btn danger" data-logout>Log out</button>
-          </div>
+          <div class="section-head"><div class="section-kicker">ACCOUNT</div><h2>Account</h2><p>Manage your profile and AI Companion plan.</p></div>
+          <div class="account-card"><div class="account-avatar" data-account-avatar>A</div><div class="account-info"><div class="account-name" data-account-name>Loading account…</div><div class="account-email" data-account-email>Checking session</div></div><span class="badge" data-account-plan>—</span></div>
+          <div class="account-actions"><a class="settings-btn" href="profile.html">Profile</a><a class="settings-btn primary" href="upgrade.html">Manage plan</a><button class="settings-btn danger" data-logout>Log out</button></div>
         </section>
       </div>
     </div>
