@@ -620,3 +620,47 @@ Error generating stack: `+o.message+`
   setTimeout(wire,500);
   setTimeout(wire,1200);
 })();
+
+/* Real authenticated dashboard identity and Premium state. */
+(function(){
+  const loadAccount=async()=>{
+    try{
+      const response=await fetch("/api/auth/me",{credentials:"include",cache:"no-store"});
+      if(!response.ok)return;
+      const data=await response.json();
+      const user=data.user||{};
+      const account=data.account||{};
+      const displayName=String(user.displayName||user.email||"AI User").trim();
+      const plan=account.premium ? (account.plan==="premium_trial" ? "Premium Trial" : "Premium") : "Free plan";
+
+      document.querySelectorAll("body *").forEach(el=>{
+        if(el.children.length===0 && el.textContent.trim()==="Guest") el.textContent=displayName;
+        if(el.children.length===0 && el.textContent.trim()==="Local profile") el.textContent=plan;
+      });
+
+      document.querySelectorAll("[data-menu-action='login']").forEach(btn=>{
+        btn.innerHTML=btn.innerHTML.replace("Log in","Log out");
+        btn.dataset.menuAction="logout";
+      });
+    }catch{}
+  };
+
+  const bind=()=>{
+    document.querySelectorAll("[data-menu-action='logout']").forEach(btn=>{
+      if(btn.dataset.authBound)return;
+      btn.dataset.authBound="1";
+      btn.addEventListener("click",async event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        try{await fetch("/api/auth/logout",{method:"POST",credentials:"include"});}catch{}
+        window.location.reload();
+      },true);
+    });
+  };
+
+  loadAccount();
+  bind();
+  const observer=new MutationObserver(()=>{loadAccount();bind()});
+  observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(()=>observer.disconnect(),15000);
+})();
