@@ -680,7 +680,7 @@ Error generating stack: `+o.message+`
     document.querySelectorAll('button').forEach(card=>{
       const title=Object.keys(icons).find(x=>card.textContent.includes(x));
       if(!title||card.dataset.aiLogoReady==="1")return;
-      const host=card.querySelector("div.relative.rounded-[19px]")||card.firstElementChild;
+      const host=Array.from(card.children).find(el=>String(el.className||"").includes("rounded-[19px]"))||card.firstElementChild;
       if(!host)return;
       const wrap=document.createElement("div");
       wrap.className="ai-suggestion-logo";
