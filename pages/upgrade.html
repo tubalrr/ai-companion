@@ -1,1 +1,79 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upgrade plan • AI Companion</title><link rel="stylesheet" href="../assets/css/style.css"><style>.page{min-height:100vh;display:grid;place-items:center;padding:20px;background:#080a12;color:#fff}.card{width:min(650px,100%);padding:36px;border:1px solid #ffffff15;border-radius:24px;background:#151927e8;box-shadow:0 30px 90px #0008}.card h1{margin-top:0}.card p{color:#858ba0;line-height:1.6}.card a{display:inline-block;margin-top:20px;color:#b9b6ff;text-decoration:none}.plan{margin-top:25px;padding:20px;border:1px solid #8b6cff55;border-radius:16px;background:#ffffff06}.plan b,.plan span{display:block}.plan span{color:#858ba0;margin-top:5px;font-size:13px}</style></head><body class="dark"><main class="page"><section class="card"><h1>✦ Upgrade plan</h1><p>Plans will be connected to billing when the account backend is added.</p><div class="plan"><b>Free</b><span>Current prototype plan</span></div><a href="profile.html">← Back to Profile</a></section></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080a14">
+<title>Upgrade • AI Companion</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+:root{color-scheme:dark}
+body{margin:0;background:#080a14;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.page{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 20%,rgba(139,108,255,.2),transparent 32%),radial-gradient(circle at 80% 75%,rgba(53,221,192,.12),transparent 30%)}
+.card{width:min(720px,100%);padding:34px;border:1px solid #ffffff18;border-radius:28px;background:#151927e8;box-shadow:0 30px 100px #0009;backdrop-filter:blur(25px)}
+.back{display:inline-flex;color:#aeb4c7;text-decoration:none;margin-bottom:24px}
+.eyebrow{color:#b9b6ff;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:clamp(32px,6vw,52px);margin:8px 0}.sub{color:#858ba0;line-height:1.6}
+.hero{margin-top:26px;padding:24px;border:1px solid #8b6cff55;border-radius:22px;background:linear-gradient(135deg,#8b6cff18,#35ddc012)}
+.price{font-size:32px;font-weight:800;margin-top:8px}.price small{font-size:14px;color:#858ba0;font-weight:500}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}.feature{padding:13px;border:1px solid #ffffff10;border-radius:14px;background:#ffffff06;color:#dce0ee}
+button{width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#fff,#d9d8ff);color:#111;font-weight:800;font-size:15px;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}.status{margin-top:14px;color:#858ba0;font-size:13px;min-height:20px}.active{color:#63e6be}.warn{color:#ffb86b}
+@media(max-width:560px){.card{padding:24px}.features{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="page"><section class="card">
+<a class="back" href="../index.html">← Back to AI Companion</a>
+<div class="eyebrow">AI Companion Premium</div>
+<h1>Unlock Premium</h1>
+<p class="sub">Try Premium free for 7 days. This trial does not charge you and does not require a payment method in this implementation.</p>
+<div class="hero">
+<strong>7-Day Premium Free Trial</strong>
+<div class="price">₱0 <small>during the trial</small></div>
+<p class="sub">Premium access stays active for 7 days after you start the trial.</p>
+<div class="features">
+<div class="feature">🚀 Higher AI usage limits</div>
+<div class="feature">⚡ Priority features</div>
+<div class="feature">📁 More workspace features</div>
+<div class="feature">☁️ Cloud conversation access</div>
+</div>
+<button id="trialButton">Start 7-Day Free Trial</button>
+<div id="status" class="status"></div>
+</div>
+</section></main>
+<script>
+const button=document.getElementById("trialButton"),status=document.getElementById("status");
+function fmt(date){return new Intl.DateTimeFormat(undefined,{dateStyle:"medium"}).format(new Date(date))}
+async function loadPlan(){
+  try{
+    const r=await fetch("../api/account/plan",{credentials:"include"});
+    if(!r.ok){status.textContent="Log in first to start your Premium trial.";button.textContent="Log in";button.onclick=()=>location.href="login.html";return;}
+    const d=await r.json(),a=d.account;
+    if(a.premium){
+      button.disabled=true;
+      button.textContent=a.plan==="premium_trial"?"Premium Trial Active":"Premium Active";
+      status.className="status active";
+      status.textContent=a.trialEndsAt?"Trial ends "+fmt(a.trialEndsAt)+".":"Premium is active.";
+    }else if(a.trialStartedAt){
+      button.disabled=true;
+      button.textContent="Free Trial Already Used";
+      status.className="status warn";
+      status.textContent="Your 7-day free trial has already been used.";
+    }
+  }catch{status.textContent="Backend connection is unavailable.";button.disabled=true}
+}
+button.onclick=async()=>{
+  button.disabled=true;button.textContent="Starting trial…";status.textContent="";
+  try{
+    const r=await fetch("../api/trial/start",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"}});
+    const d=await r.json();
+    if(!r.ok){status.className="status warn";status.textContent=d.error||"Could not start the trial.";button.disabled=false;button.textContent="Start 7-Day Free Trial";return;}
+    button.textContent="Premium Trial Active";
+    status.className="status active";
+    status.textContent="Your 7-day Premium trial is active until "+fmt(d.account.trialEndsAt)+".";
+  }catch{status.className="status warn";status.textContent="Backend connection is unavailable.";button.disabled=false;button.textContent="Start 7-Day Free Trial"}
+};
+loadPlan();
+</script>
+</body></html>
