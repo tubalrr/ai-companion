@@ -216,6 +216,31 @@ Error generating stack: `+o.message+`
     document.querySelectorAll("[data-recent-menu]").forEach(m=>m.remove());
   };
 
+  const restorePinned=()=>{
+    const container=document.querySelector(".space-y-1");
+    if(!container)return;
+    const pinned=JSON.parse(localStorage.getItem("aiCompanionPinnedConversations")||"[]");
+    if(!pinned.length)return;
+    const items=[...container.querySelectorAll(".group")];
+    pinned.slice().reverse().forEach(title=>{
+      const item=items.find(el=>el.querySelector("button:not([title='Conversation actions']) div")?.textContent?.trim()===title);
+      if(item){
+        item.dataset.pinned="true";
+        if(!item.querySelector("[data-pin-badge]")){
+          const badge=document.createElement("span");
+          badge.dataset.pinBadge="true";
+          badge.textContent="📌";
+          badge.style.cssText="position:absolute;left:7px;top:8px;font-size:10px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));z-index:5";
+          item.appendChild(badge);
+        }
+        container.prepend(item);
+      }
+    });
+  };
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",restorePinned);
+  else setTimeout(restorePinned,0);
+
   document.addEventListener("click",function(event){
     const btn=event.target.closest("button[title='Conversation actions']");
     if(!btn)return;
@@ -254,8 +279,30 @@ Error generating stack: `+o.message+`
 
         if(action==="pin"){
           const container=wrap.parentElement;
-          if(container) container.prepend(wrap);
-          showToast("Conversation pinned.");
+          const titleNode=wrap.querySelector("button:not([title='Conversation actions']) div");
+          const title=titleNode?.textContent?.trim()||"Conversation";
+          const pinned=JSON.parse(localStorage.getItem("aiCompanionPinnedConversations")||"[]");
+          const already=pinned.includes(title);
+          if(already){
+            localStorage.setItem("aiCompanionPinnedConversations",JSON.stringify(pinned.filter(x=>x!==title)));
+            wrap.dataset.pinned="false";
+            const badge=wrap.querySelector("[data-pin-badge]");
+            if(badge) badge.remove();
+            showToast("Conversation unpinned.");
+          }else{
+            pinned.unshift(title);
+            localStorage.setItem("aiCompanionPinnedConversations",JSON.stringify([...new Set(pinned)]));
+            wrap.dataset.pinned="true";
+            if(!wrap.querySelector("[data-pin-badge]")){
+              const badge=document.createElement("span");
+              badge.dataset.pinBadge="true";
+              badge.textContent="📌";
+              badge.style.cssText="position:absolute;left:7px;top:8px;font-size:10px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));z-index:5";
+              wrap.appendChild(badge);
+            }
+            if(container) container.prepend(wrap);
+            showToast("Conversation pinned.");
+          }
         }else if(action==="rename"){
           const next=window.prompt("Rename conversation:",currentTitle);
           if(next&&next.trim()&&titleEl) titleEl.textContent=next.trim();
