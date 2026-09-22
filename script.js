@@ -92,9 +92,12 @@ Error generating stack: `+o.message+`
   const setPrompt=(value)=>{
     const el=input();
     if(!el)return;
-    el.value=value;
-    el.focus();
+    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+    if(setter) setter.call(el,value);
+    else el.value=value;
     el.dispatchEvent(new Event("input",{bubbles:true}));
+    el.dispatchEvent(new Event("change",{bubbles:true}));
+    el.focus();
   };
 
   document.addEventListener("click",(event)=>{
