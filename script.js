@@ -26,3 +26,115 @@ Error generating stack: `+o.message+`
 
 
 (function(){function m(a){var h=a.getAttribute("href");if(!h)return;try{var u=new URL(h,document.baseURI);if((u.protocol==="http:"||u.protocol==="https:")&&u.host!==location.host){a.target="_blank";a.rel="noopener noreferrer";}}catch(e){}}function s(){document.querySelectorAll("a[href]").forEach(m);}if(document.readyState!=="loading"){s();}else{document.addEventListener("DOMContentLoaded",s);}document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a){m(a);}},true);})();
+
+/* Real navigation + interaction layer.
+   The visual reference above intentionally has no backend. These handlers make
+   the visible controls actually respond without pretending an AI service exists. */
+(function(){
+  const routes={
+    "Library":"pages/library.html",
+    "Projects":"pages/projects.html",
+    "Scheduled":"pages/scheduled.html",
+    "Coding":"pages/coding.html"
+  };
+
+  function go(path){
+    window.location.href=path;
+  }
+
+  function findInput(){
+    return document.querySelector('input[placeholder*="Ask anything"], textarea[placeholder*="Ask anything"]');
+  }
+
+  function setComposer(text){
+    const input=findInput();
+    if(!input) return;
+    input.value=text;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    input.focus();
+  }
+
+  document.addEventListener("click",function(ev){
+    const el=ev.target && ev.target.closest ? ev.target.closest("button") : null;
+    if(!el) return;
+
+    const label=(el.innerText||el.textContent||"").replace(/\s+/g," ").trim();
+
+    if(routes[label]){
+      ev.preventDefault();
+      ev.stopPropagation();
+      go(routes[label]);
+      return;
+    }
+
+    if(/^New chat$/i.test(label)){
+      ev.preventDefault();
+      ev.stopPropagation();
+      const input=findInput();
+      if(input){ input.value=""; input.dispatchEvent(new Event("input",{bubbles:true})); input.focus(); }
+      return;
+    }
+
+    const suggestion={
+      "What’s on your mind?":"Help me think through this.",
+      "What’s on your mind":"Help me think through this.",
+      "Get creative":"Give me creative ideas.",
+      "Teach me":"Teach me something step by step.",
+      "Help me write":"Help me write and improve something."
+    };
+    if(suggestion[label]){
+      ev.preventDefault();
+      ev.stopPropagation();
+      setComposer(suggestion[label]);
+      return;
+    }
+
+    /* The reference send button had no backend. Instead of a fake AI answer,
+       show a truthful connection message directly in the UI. */
+    const input=findInput();
+    if(input && el.contains(input)===false){
+      const rect=el.getBoundingClientRect();
+      const ir=input.getBoundingClientRect();
+      if(rect.left > ir.left + ir.width - 90 && rect.top >= ir.top-30 && rect.bottom <= ir.bottom+30){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const value=input.value.trim();
+        if(!value) return;
+        setComposer("");
+        let note=document.getElementById("backend-status-note");
+        if(!note){
+          note=document.createElement("div");
+          note.id="backend-status-note";
+          note.style.cssText="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:9999;max-width:calc(100vw - 32px);padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(18,20,34,.96);backdrop-filter:blur(18px);color:rgba(255,255,255,.72);font:13px system-ui,sans-serif;box-shadow:0 12px 35px rgba(0,0,0,.35)";
+          document.body.appendChild(note);
+        }
+        note.textContent="AI backend is not connected yet. No fake response was generated.";
+        clearTimeout(note._timer);
+        note._timer=setTimeout(()=>note.remove(),4000);
+      }
+    }
+  },true);
+
+  /* Make keyboard Enter behave honestly too: no fake AI response. */
+  document.addEventListener("keydown",function(ev){
+    const input=ev.target;
+    if(!input || input.tagName!=="INPUT" || !input.placeholder || !input.placeholder.includes("Ask anything")) return;
+    if(ev.key==="Enter" && !ev.shiftKey){
+      ev.preventDefault();
+      const value=input.value.trim();
+      if(!value) return;
+      input.value="";
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      let note=document.getElementById("backend-status-note");
+      if(!note){
+        note=document.createElement("div");
+        note.id="backend-status-note";
+        note.style.cssText="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:9999;max-width:calc(100vw - 32px);padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(18,20,34,.96);backdrop-filter:blur(18px);color:rgba(255,255,255,.72);font:13px system-ui,sans-serif;box-shadow:0 12px 35px rgba(0,0,0,.35)";
+        document.body.appendChild(note);
+      }
+      note.textContent="AI backend is not connected yet. No fake response was generated.";
+      clearTimeout(note._timer);
+      note._timer=setTimeout(()=>note.remove(),4000);
+    }
+  },true);
+})();
