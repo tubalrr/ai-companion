@@ -15,14 +15,14 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
 const jwtSecret = process.env.JWT_SECRET;
-const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false }) : null;
+const pool = process.env.DATABASE_URL ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+}) : null;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY is not set. Add it to server/.env before starting the server.");
-}
-
+if (!process.env.OPENAI_API_KEY) console.warn("OPENAI_API_KEY is not set. Add it to server/.env before starting the server.");
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 app.use(express.json({ limit: "1mb" }));
@@ -36,13 +36,11 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use((req,res,next)=>{
-  if(req.path.startsWith("/api/")) res.setHeader("Cache-Control","no-store");
-  next();
-});
+app.use((req,res,next)=>{ if(req.path.startsWith("/api/")) res.setHeader("Cache-Control","no-store"); next(); });
 
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false });
+const chatLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false });
 
-// Real user authentication
 async function initAuthDb(){
   if(!pool) return;
   await pool.query(`
@@ -52,8 +50,14 @@ async function initAuthDb(){
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       display_name TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'free',
+      trial_started_at TIMESTAMPTZ,
+      trial_ends_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
     CREATE TABLE IF NOT EXISTS conversations (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -73,12 +77,16 @@ async function initAuthDb(){
     CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(conversation_id, id);
   `);
 }
+
 function signUser(user){
   if(!jwtSecret) throw new Error("JWT_SECRET is not configured");
   return jwt.sign({sub:String(user.id),email:user.email},jwtSecret,{expiresIn:"7d"});
 }
 function setAuthCookie(res,token){
-  res.cookie("ai_companion_session",token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",maxAge:7*24*60*60*1000,path:"/"});
+  res.cookie("ai_companion_session",token,{
+    httpOnly:true, secure:process.env.NODE_ENV==="production", sameSite:"lax",
+    maxAge:7*24*60*60*1000, path:"/"
+  });
 }
 function readToken(req){
   const raw=req.headers.cookie?.split(";").map(x=>x.trim()).find(x=>x.startsWith("ai_companion_session="));
@@ -87,13 +95,28 @@ function readToken(req){
 async function requireAuth(req,res,next){
   try{
     const token=readToken(req);
-    if(!token||!jwtSecret) return res.status(401).json({error:"Authentication required"});
+    if(!token||!jwtSecret||!pool) return res.status(401).json({error:"Authentication required"});
     const decoded=jwt.verify(token,jwtSecret);
-    const result=await pool.query("SELECT id,email,display_name,created_at FROM users WHERE id=$1",[decoded.sub]);
+    const result=await pool.query(
+      "SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",
+      [decoded.sub]
+    );
     if(!result.rows[0]) return res.status(401).json({error:"User not found"});
     req.user=result.rows[0];
     next();
-  }catch(e){ return res.status(401).json({error:"Invalid or expired session"}); }
+  }catch{ return res.status(401).json({error:"Invalid or expired session"}); }
+}
+function accountStatus(user){
+  const now=Date.now();
+  const trialEnds=user.trial_ends_at ? new Date(user.trial_ends_at).getTime() : 0;
+  const trialActive=trialEnds>now;
+  return {
+    plan:user.plan==="premium" ? "premium" : (trialActive ? "premium_trial" : "free"),
+    premium: user.plan==="premium" || trialActive,
+    trialActive,
+    trialStartedAt:user.trial_started_at,
+    trialEndsAt:user.trial_ends_at
+  };
 }
 
 app.post("/api/auth/register", authLimiter, async(req,res)=>{
@@ -102,15 +125,19 @@ app.post("/api/auth/register", authLimiter, async(req,res)=>{
     const email=String(req.body?.email||"").trim().toLowerCase();
     const password=String(req.body?.password||"");
     const displayName=String(req.body?.displayName||email.split("@")[0]||"AI User").trim().slice(0,40);
-    if(!/^\\S+@\\S+\\.\\S+$/.test(email)||password.length<8) return res.status(400).json({error:"Use a valid email and a password with at least 8 characters"});
+    if(!/^\S+@\S+\.\S+$/.test(email)||password.length<8)
+      return res.status(400).json({error:"Use a valid email and a password with at least 8 characters"});
     const hash=await bcrypt.hash(password,12);
-    const result=await pool.query("INSERT INTO users(email,password_hash,display_name) VALUES($1,$2,$3) RETURNING id,email,display_name,created_at",[email,hash,displayName]);
+    const result=await pool.query(
+      "INSERT INTO users(email,password_hash,display_name) VALUES($1,$2,$3) RETURNING id,email,display_name,plan,trial_started_at,trial_ends_at,created_at",
+      [email,hash,displayName]
+    );
     const user=result.rows[0];
     setAuthCookie(res,signUser(user));
-    res.status(201).json({ok:true,user});
+    res.status(201).json({ok:true,user,account:accountStatus(user)});
   }catch(e){
     if(e.code==="23505") return res.status(409).json({error:"An account with that email already exists"});
-    console.error(e);res.status(500).json({error:"Registration failed"});
+    console.error(e); res.status(500).json({error:"Registration failed"});
   }
 });
 
@@ -119,13 +146,13 @@ app.post("/api/auth/login", authLimiter, async(req,res)=>{
     if(!pool) return res.status(503).json({error:"Database is not configured"});
     const email=String(req.body?.email||"").trim().toLowerCase();
     const password=String(req.body?.password||"");
-    const result=await pool.query("SELECT id,email,password_hash,display_name,created_at FROM users WHERE email=$1",[email]);
+    const result=await pool.query("SELECT id,email,password_hash,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE email=$1",[email]);
     const user=result.rows[0];
     if(!user||!(await bcrypt.compare(password,user.password_hash))) return res.status(401).json({error:"Invalid email or password"});
     delete user.password_hash;
     setAuthCookie(res,signUser(user));
-    res.json({ok:true,user});
-  }catch(e){console.error(e);res.status(500).json({error:"Login failed"});}
+    res.json({ok:true,user,account:accountStatus(user)});
+  }catch(e){ console.error(e); res.status(500).json({error:"Login failed"}); }
 });
 
 app.get("/api/auth/me",async(req,res)=>{
@@ -134,112 +161,86 @@ app.get("/api/auth/me",async(req,res)=>{
     const token=readToken(req);
     if(!token||!jwtSecret) return res.status(401).json({error:"Not logged in"});
     const decoded=jwt.verify(token,jwtSecret);
-    const result=await pool.query("SELECT id,email,display_name,created_at FROM users WHERE id=$1",[decoded.sub]);
+    const result=await pool.query("SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",[decoded.sub]);
     if(!result.rows[0]) return res.status(401).json({error:"Not logged in"});
-    res.json({ok:true,user:result.rows[0]});
-  }catch(e){res.status(401).json({error:"Not logged in"});}
+    res.json({ok:true,user:result.rows[0],account:accountStatus(result.rows[0])});
+  }catch{ res.status(401).json({error:"Not logged in"}); }
 });
 
 app.post("/api/auth/logout",authLimiter,(_req,res)=>{
   res.clearCookie("ai_companion_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/"});
   res.json({ok:true});
 });
- 
-app.get("/api/conversations", requireAuth, async (req,res)=>{
+
+app.get("/api/account/plan", requireAuth, (req,res)=>{
+  res.json({ok:true,account:accountStatus(req.user)});
+});
+
+app.post("/api/trial/start", requireAuth, async(req,res)=>{
   try{
+    if(req.user.plan==="premium")
+      return res.json({ok:true,account:accountStatus(req.user),message:"Premium is already active."});
+    if(req.user.trial_started_at)
+      return res.status(409).json({error:"Your free trial has already been used.",account:accountStatus(req.user)});
     const result=await pool.query(
-      "SELECT id,title,created_at,updated_at FROM conversations WHERE user_id=$1 ORDER BY updated_at DESC LIMIT 100",
+      "UPDATE users SET plan='free', trial_started_at=NOW(), trial_ends_at=NOW()+INTERVAL '7 days' WHERE id=$1 AND trial_started_at IS NULL RETURNING id,email,display_name,plan,trial_started_at,trial_ends_at,created_at",
       [req.user.id]
     );
+    if(!result.rows[0]) return res.status(409).json({error:"Your free trial has already been used."});
+    res.json({ok:true,account:accountStatus(result.rows[0]),message:"Your 7-day Premium free trial has started."});
+  }catch(e){ console.error(e); res.status(500).json({error:"Could not start the free trial"}); }
+});
+
+app.get("/api/conversations", requireAuth, async (req,res)=>{
+  try{
+    const result=await pool.query("SELECT id,title,created_at,updated_at FROM conversations WHERE user_id=$1 ORDER BY updated_at DESC LIMIT 100",[req.user.id]);
     res.json({ok:true,conversations:result.rows});
   }catch(e){console.error(e);res.status(500).json({error:"Could not load conversations"});}
 });
-
 app.post("/api/conversations", requireAuth, async (req,res)=>{
   try{
     const title=String(req.body?.title||"New conversation").trim().slice(0,200)||"New conversation";
-    const result=await pool.query(
-      "INSERT INTO conversations(user_id,title) VALUES($1,$2) RETURNING id,title,created_at,updated_at",
-      [req.user.id,title]
-    );
+    const result=await pool.query("INSERT INTO conversations(user_id,title) VALUES($1,$2) RETURNING id,title,created_at,updated_at",[req.user.id,title]);
     res.status(201).json({ok:true,conversation:result.rows[0]});
   }catch(e){console.error(e);res.status(500).json({error:"Could not create conversation"});}
 });
-
 app.get("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
   try{
-    const result=await pool.query(
-      "SELECT m.id,m.role,m.content,m.created_at FROM messages m JOIN conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.user_id=$2 ORDER BY m.id ASC",
-      [req.params.id,req.user.id]
-    );
+    const result=await pool.query("SELECT m.id,m.role,m.content,m.created_at FROM messages m JOIN conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.user_id=$2 ORDER BY m.id ASC",[req.params.id,req.user.id]);
     res.json({ok:true,messages:result.rows});
   }catch(e){console.error(e);res.status(500).json({error:"Could not load messages"});}
 });
-
 app.post("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
   try{
     const role=req.body?.role;
     const content=String(req.body?.content||"").trim();
-    if(role!=="user"&&role!=="assistant"||!content) return res.status(400).json({error:"Valid role and content are required"});
+    if((role!=="user"&&role!=="assistant")||!content) return res.status(400).json({error:"Valid role and content are required"});
     const owned=await pool.query("SELECT id FROM conversations WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);
     if(!owned.rows[0]) return res.status(404).json({error:"Conversation not found"});
-    const result=await pool.query(
-      "INSERT INTO messages(conversation_id,user_id,role,content) VALUES($1,$2,$3,$4) RETURNING id,role,content,created_at",
-      [req.params.id,req.user.id,role,content]
-    );
+    const result=await pool.query("INSERT INTO messages(conversation_id,user_id,role,content) VALUES($1,$2,$3,$4) RETURNING id,role,content,created_at",[req.params.id,req.user.id,role,content]);
     await pool.query("UPDATE conversations SET updated_at=NOW() WHERE id=$1",[req.params.id]);
     res.status(201).json({ok:true,message:result.rows[0]});
   }catch(e){console.error(e);res.status(500).json({error:"Could not save message"});}
 });
 
+app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.OPENAI_API_KEY),model,service:"AI Companion backend"}));
 
-
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false });
-const chatLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false });
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: Boolean(process.env.OPENAI_API_KEY),
-    model,
-    service: "AI Companion backend"
-  });
-});
-
-app.post("/api/chat", requireAuth, chatLimiter, async (req, res) => {
-  try {
-    const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
-    if (!messages.length) {
-      return res.status(400).json({ error: "messages is required" });
-    }
-
-    const safeMessages = messages
-      .filter(m => m && (m.role === "user" || m.role === "assistant"))
-      .slice(-20)
-      .map(m => ({
-        role: m.role,
-        content: String(m.content || "").slice(0, 12000)
-      }));
-
-    if (!openai) return res.status(503).json({ error: "AI service is not configured" });
-
-    const response = await openai.responses.create({
+app.post("/api/chat", requireAuth, chatLimiter, async(req,res)=>{
+  try{
+    const messages=Array.isArray(req.body?.messages)?req.body.messages:[];
+    if(!messages.length) return res.status(400).json({error:"messages is required"});
+    const safeMessages=messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")).slice(-20).map(m=>({role:m.role,content:String(m.content||"").slice(0,12000)}));
+    if(!openai) return res.status(503).json({error:"AI service is not configured"});
+    const response=await openai.responses.create({
       model,
-      instructions: "You are AI Companion, a helpful, clear, friendly assistant. Do not claim to have performed actions you did not perform.",
-      input: safeMessages,
-      max_output_tokens: 1200
+      instructions:"You are AI Companion, a helpful, clear, friendly assistant. Do not claim to have performed actions you did not perform.",
+      input:safeMessages,
+      max_output_tokens:1200
     });
-
-    res.json({
-      ok: true,
-      text: response.output_text || ""
-    });
-  } catch (error) {
-    console.error("AI request failed:", error);
-    res.status(500).json({
-      ok: false,
-      error: "AI request failed",
-      detail: process.env.NODE_ENV === "production" ? undefined : error.message
-    });
+    res.json({ok:true,text:response.output_text||""});
+  }catch(error){
+    console.error("AI request failed:",error);
+    res.status(500).json({ok:false,error:"AI request failed",detail:process.env.NODE_ENV==="production"?undefined:error.message});
   }
 });
 
