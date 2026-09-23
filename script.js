@@ -222,16 +222,22 @@ Error generating stack: `+o.message+`
   const renderMessage=(role,text)=>{
     const root=document.getElementById("root");
     if(!root)return;
+    document.body.classList.add("ai-chat-active");
     let box=document.getElementById("ai-live-messages");
     if(!box){
       box=document.createElement("div");
       box.id="ai-live-messages";
-      box.style.cssText="position:fixed;left:50%;top:120px;transform:translateX(-50%);width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 300px);overflow:auto;z-index:30;display:flex;flex-direction:column;gap:10px;padding:8px 4px 24px;pointer-events:none";
+      box.style.cssText="position:fixed;left:300px;right:0;top:82px;bottom:150px;z-index:25;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:22px;padding:28px 28px 34px;scroll-behavior:smooth;pointer-events:none;background:linear-gradient(180deg,rgba(8,10,20,.08),rgba(8,10,20,.18));mask-image:linear-gradient(to bottom,transparent 0,#000 28px,#000 calc(100% - 28px),transparent 100%);";
       root.appendChild(box);
     }
     const item=document.createElement("div");
-    item.style.cssText="pointer-events:auto;align-self:"+(role==="user"?"flex-end":"flex-start")+";max-width:88%;padding:12px 15px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:"+(role==="user"?"rgba(99,102,241,.20)":"rgba(20,22,36,.92)")+";backdrop-filter:blur(18px);color:rgba(255,255,255,.9);font:14px/1.55 system-ui,sans-serif;white-space:pre-wrap;box-shadow:0 12px 30px rgba(0,0,0,.22)";
-    item.textContent=text;
+    item.style.cssText="pointer-events:auto;width:min(820px,100%);margin:0 auto;display:flex;flex-direction:column;align-items:"+(role==="user"?"flex-end":"flex-start")+";padding:0 4px;";
+    const bubble=document.createElement("div");
+    bubble.style.cssText=role==="user"
+      ?"max-width:min(680px,85%);padding:11px 16px;border:1px solid rgba(139,92,246,.18);border-radius:20px 20px 6px 20px;background:linear-gradient(135deg,rgba(99,102,241,.28),rgba(79,70,229,.18));color:rgba(255,255,255,.94);font:14px/1.6 system-ui,sans-serif;white-space:pre-wrap;box-shadow:0 8px 24px rgba(0,0,0,.16);backdrop-filter:blur(14px)"
+      :"width:100%;max-width:760px;padding:2px 0;color:rgba(255,255,255,.9);font:15px/1.7 system-ui,sans-serif;white-space:pre-wrap";
+    bubble.textContent=text;
+    item.appendChild(bubble);
     if(role==="assistant"){
       const actions=document.createElement("div");
       actions.style.cssText="display:flex;gap:6px;margin-top:10px;opacity:.75";
@@ -253,7 +259,7 @@ Error generating stack: `+o.message+`
       item.appendChild(actions);
     }
     box.appendChild(item);
-    box.scrollTop=box.scrollHeight;
+    requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight;});
   };
 
   const sendMessage=async()=>{
@@ -343,6 +349,11 @@ Error generating stack: `+o.message+`
       event.stopImmediatePropagation();
       const el=input();
       if(el){el.value="";el.focus();el.dispatchEvent(new Event("input",{bubbles:true}));}
+      history.length=0;
+      cloudConversationId=null;
+      document.getElementById("ai-live-messages")?.remove();
+      document.body.classList.remove("ai-chat-active");
+      document.title="AI Companion — AI Chat Workspace";
       return;
     }
 
