@@ -708,11 +708,30 @@ Error generating stack: `+o.message+`
   };
   const titles=new Set(Object.keys(prompts));
   const markCards=()=>{
+    const cards=[];
     document.querySelectorAll("button").forEach(btn=>{
       const label=(btn.innerText||btn.textContent||"").replace(/\\s+/g," ").trim();
       if(!titles.has(label))return;
       btn.classList.add("ai-suggestion-card");
+      cards.push(btn);
     });
+
+    // The welcome cards belong to the homepage welcome block.
+    // Hide that block as soon as a real conversation starts, then restore it on New Chat.
+    if(cards.length){
+      const grid=cards[0].parentElement;
+      if(grid)grid.classList.add("ai-home-suggestions");
+      if(grid?.parentElement)grid.parentElement.classList.add("ai-home-welcome");
+    }
+
+    let style=document.getElementById("ai-chat-home-hide-style");
+    if(!style){
+      style=document.createElement("style");
+      style.id="ai-chat-home-hide-style";
+      style.textContent="body.ai-chat-active .ai-home-welcome,body.ai-chat-active .ai-suggestion-card{display:none!important}";
+      document.head.appendChild(style);
+    }
+
     document.querySelectorAll(".ai-suggestion-logo").forEach(el=>el.remove());
   };
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",markCards,{once:true});
