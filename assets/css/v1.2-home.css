@@ -1,0 +1,138 @@
+/* AI Companion v1.2 — product polish layer
+   Homepage UX polish only. No backend/API behavior changes.
+*/
+
+:root{
+  --ac-v12-violet:#8b5cf6;
+  --ac-v12-indigo:#6366f1;
+  --ac-v12-blue:#3b82f6;
+  --ac-v12-cyan:#22d3ee;
+  --ac-v12-border:rgba(255,255,255,.09);
+}
+
+/* Stronger visual hierarchy for the empty-state dashboard. */
+#root > div.min-h-screen main{
+  position:relative;
+  isolation:isolate;
+}
+
+#root > div.min-h-screen main::after{
+  content:"";
+  position:absolute;
+  width:520px;
+  height:280px;
+  left:50%;
+  top:26%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  z-index:-1;
+  background:radial-gradient(ellipse,rgba(99,102,241,.10),transparent 68%);
+  filter:blur(10px);
+}
+
+/* Make the welcome mark feel like a real product identity. */
+#root h1 span:first-child,
+#root h1 span:last-child{
+  letter-spacing:-.035em;
+}
+
+#root h1 span:first-child{
+  text-shadow:0 4px 28px rgba(255,255,255,.08);
+}
+
+/* Premium suggestion-card treatment. */
+#root button.ai-suggestion-card{
+  min-height:104px;
+  border:1px solid var(--ac-v12-border) !important;
+}
+
+#root button.ai-suggestion-card svg{
+  transition:transform .25s ease,filter .25s ease;
+}
+
+#root button.ai-suggestion-card:hover svg{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 10px rgba(139,92,246,.30));
+}
+
+/* Composer: clearer focus state and subtle premium glow. */
+#root [data-ai-composer]{
+  position:relative;
+  border-color:rgba(255,255,255,.10) !important;
+  box-shadow:
+    0 18px 55px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.055);
+  transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease;
+}
+
+#root [data-ai-composer]:focus-within{
+  border-color:rgba(139,92,246,.34) !important;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.28),
+    0 0 0 1px rgba(139,92,246,.10),
+    0 0 34px rgba(99,102,241,.09),
+    inset 0 1px 0 rgba(255,255,255,.07);
+  transform:translateY(-1px);
+}
+
+#root [data-ai-composer] input::placeholder{
+  transition:opacity .2s ease;
+}
+
+#root [data-ai-composer] input:focus::placeholder{
+  opacity:.55;
+}
+
+/* Keep the primary send action visually distinct. */
+#root [data-ai-composer] button:last-child{
+  box-shadow:0 8px 24px rgba(99,102,241,.20);
+  transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;
+}
+
+#root [data-ai-composer] button:last-child:hover{
+  transform:translateY(-1px) scale(1.025);
+  box-shadow:0 10px 28px rgba(99,102,241,.30);
+  filter:saturate(1.08);
+}
+
+/* Recent conversation rows feel more like a professional workspace. */
+#root aside button{
+  border-radius:12px;
+}
+
+#root aside button:hover{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035);
+}
+
+/* Better desktop breathing room without making the dashboard oversized. */
+@media (min-width:1024px){
+  #root > div.min-h-screen main{
+    padding-left:clamp(20px,3vw,48px);
+    padding-right:clamp(20px,3vw,48px);
+  }
+}
+
+/* Compact mobile layout. */
+@media (max-width:767px){
+  #root > div.min-h-screen main::after{
+    width:360px;
+    height:220px;
+    top:22%;
+  }
+
+  #root button.ai-suggestion-card{
+    min-height:92px;
+  }
+
+  #root [data-ai-composer]:focus-within{
+    transform:none;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  #root [data-ai-composer],
+  #root [data-ai-composer] button:last-child,
+  #root button.ai-suggestion-card svg{
+    transition:none !important;
+  }
+}
