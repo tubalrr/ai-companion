@@ -716,8 +716,8 @@ Error generating stack: `+o.message+`
       cards.push(btn);
     });
 
-    // The welcome cards belong to the homepage welcome block.
-    // Hide that block as soon as a real conversation starts, then restore it on New Chat.
+    // Keep only the actual welcome cards marked. They disappear as soon as
+    // the user starts typing, just like the main ChatGPT/Gemini composer flow.
     if(cards.length){
       const grid=cards[0].parentElement;
       if(grid)grid.classList.add("ai-home-suggestions");
@@ -728,9 +728,21 @@ Error generating stack: `+o.message+`
     if(!style){
       style=document.createElement("style");
       style.id="ai-chat-home-hide-style";
-      style.textContent="body.ai-chat-active button.ai-suggestion-card,body.ai-chat-active .ai-home-welcome{display:none!important}";
+      style.textContent="body.ai-chat-active button.ai-suggestion-card{display:none!important}";
       document.head.appendChild(style);
     }
+
+    const sync=()=>{
+      const el=document.querySelector('input[placeholder*="Ask anything"]');
+      const active=!!el && el.value.trim().length>0;
+      document.querySelectorAll("button.ai-suggestion-card").forEach(btn=>{
+        btn.style.display=active || document.body.classList.contains("ai-chat-active") ? "none" : "";
+      });
+      if(active) document.body.classList.add("ai-chat-active");
+      if(!active && !document.getElementById("ai-live-messages")) document.body.classList.remove("ai-chat-active");
+    };
+    window.aiCompanionSyncWelcome=sync;
+    sync();
 
     document.querySelectorAll(".ai-suggestion-logo").forEach(el=>el.remove());
   };
@@ -755,6 +767,31 @@ Error generating stack: `+o.message+`
     event.stopPropagation();
     put(prompt);
   },true);
+  // Typing in the composer switches from the welcome screen to conversation mode.
+  // Run on every input so React re-renders cannot bring the cards back while typing.
+  const watchComposer=()=>{
+    const el=document.querySelector('input[placeholder*="Ask anything"]');
+    if(!el)return;
+    if(el.dataset.aiWelcomeBound)return;
+    el.dataset.aiWelcomeBound="1";
+    const sync=()=>{
+      const value=el.value.trim();
+      if(value){
+        document.body.classList.add("ai-chat-active");
+      }else if(!document.getElementById("ai-live-messages")){
+        document.body.classList.remove("ai-chat-active");
+      }
+      window.aiCompanionSyncWelcome?.();
+    };
+    el.addEventListener("input",sync);
+    el.addEventListener("keyup",sync);
+    sync();
+  };
+  watchComposer();
+  const composerObserver=new MutationObserver(watchComposer);
+  composerObserver.observe(document.body,{childList:true,subtree:true});
+  setTimeout(()=>composerObserver.disconnect(),20000);
+
   window.setTimeout(()=>window.aiCompanionLoadCloudRecent?.(),900);
 })();
 
