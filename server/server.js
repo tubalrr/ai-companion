@@ -43,6 +43,30 @@ app.use((req,res,next)=>{ if(req.path.startsWith("/api/")) res.setHeader("Cache-
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false });
 const chatLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false });
+const GUEST_DAILY_CHAT_LIMIT = 10;
+const guestChatUsage = new Map();
+
+function guestChatAllowed(req){
+  const key=String(req.ip||req.headers["x-forwarded-for"]||"unknown").split(",")[0].trim();
+  const today=new Date().toISOString().slice(0,10);
+  const current=guestChatUsage.get(key);
+  if(!current || current.day!==today){
+    guestChatUsage.set(key,{day:today,count:1});
+    return {allowed:true,remaining:GUEST_DAILY_CHAT_LIMIT-1};
+  }
+  if(current.count>=GUEST_DAILY_CHAT_LIMIT){
+    return {allowed:false,remaining:0};
+  }
+  current.count+=1;
+  return {allowed:true,remaining:GUEST_DAILY_CHAT_LIMIT-current.count};
+}
+
+setInterval(()=>{
+  const today=new Date().toISOString().slice(0,10);
+  for(const [key,value] of guestChatUsage){
+    if(value.day!==today) guestChatUsage.delete(key);
+  }
+},60*60*1000).unref();
 
 async function initAuthDb(){
   if(!pool) return;
@@ -313,6 +337,22 @@ app.get("/api/library/file/:id", requireAuth, async(req,res)=>{
 app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.GEMINI_API_KEY),model,provider:"gemini",service:"AI Companion backend"}));
 
 app.post("/api/chat", chatLimiter, async(req,res)=>{
+  try{
+    const authenticatedUser=await authenticateRequest(req);
+    if(!authenticatedUser){
+      const usage=guestChatAllowed(req);
+      if(!usage.allowed){
+        return res.status(429).json({
+          ok:false,
+          error:"Guest daily limit reached",
+          code:"GUEST_LIMIT_REACHED",
+          limit:GUEST_DAILY_CHAT_LIMIT,
+          remaining:0,
+          message:"You can continue chatting after logging in."
+        });
+      }
+      res.setHeader("X-Guest-Chats-Remaining",String(usage.remaining));
+    }
   try{
     const messages=Array.isArray(req.body?.messages)?req.body.messages:[];
     if(!messages.length) return res.status(400).json({error:"messages is required"});
