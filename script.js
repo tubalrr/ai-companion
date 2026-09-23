@@ -108,7 +108,7 @@ Error generating stack: `+o.message+`
         req.onsuccess=()=>resolve(req.result);
         req.onerror=()=>reject(req.error);
       });
-      if(file && /^(text\\/|application\\/(json|javascript|xml)|text$)/i.test(file.type||"")){
+      if(file && (String(file.type||"").startsWith("text/") || /^(application\/(json|javascript|xml))$/i.test(file.type||""))){
         const text=await file.text();
         extra="\\n\\nFile content:\\n"+text.slice(0,20000);
       }
