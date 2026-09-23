@@ -185,7 +185,8 @@ app.get("/api/auth/me",async(req,res)=>{
     const decoded=jwt.verify(token,jwtSecret);
     const result=await pool.query("SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",[decoded.sub]);
     if(!result.rows[0]) return res.status(401).json({error:"Not logged in"});
-    res.json({ok:true,user:result.rows[0],account:accountStatus(result.rows[0])});
+    const sessionToken=signUser(result.rows[0]);
+    res.json({ok:true,user:result.rows[0],account:accountStatus(result.rows[0]),token:sessionToken});
   }catch{ res.status(401).json({error:"Not logged in"}); }
 });
 
