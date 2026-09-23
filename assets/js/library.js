@@ -27,6 +27,8 @@ const statStorage = document.getElementById('statStorage');
 const storageFill = document.getElementById('storageFill');
 const storageMeta = document.getElementById('storageMeta');
 const starCount = document.getElementById('starCount');
+const trashCount = document.getElementById('trashCount');
+const emptyTrashBtn = document.getElementById('emptyTrash');
 const folderBar = document.getElementById('folderBar');
 const newFolderBtn = document.getElementById('newFolder');
 const folderModal = document.getElementById('folderModal');
@@ -49,6 +51,13 @@ try {
   if (!Array.isArray(data)) data = [];
 } catch (_) {
   data = [];
+}
+let trash = [];
+try {
+  trash = JSON.parse(localStorage.getItem('aiLibraryTrash') || '[]');
+  if (!Array.isArray(trash)) trash = [];
+} catch (_) {
+  trash = [];
 }
 
 let filter = 'all';
@@ -128,6 +137,41 @@ function esc(value) {
 function save() {
   localStorage.setItem('aiLibrary', JSON.stringify(data));
 }
+function saveTrash() { localStorage.setItem('aiLibraryTrash', JSON.stringify(trash)); }
+function trashSize() { return trash.reduce(function(sum, item){ return sum + (item.size || 0); }, 0); }
+function moveToTrash(items) {
+  const now = Date.now();
+  items.forEach(function(item){
+    trash.push(Object.assign({}, item, { deletedAt: now, previousFolderId: item.folderId || 'all' }));
+  });
+  saveTrash();
+}
+async function restoreFromTrash(id) {
+  const item = trash.find(function(value){ return value.id === id; });
+  if (!item) return false;
+  const restored = Object.assign({}, item);
+  delete restored.deletedAt;
+  delete restored.previousFolderId;
+  if (item.previousFolderId && item.previousFolderId !== 'all' && folders.some(function(f){ return f.id === item.previousFolderId; })) restored.folderId = item.previousFolderId;
+  else if (item.previousFolderId === 'all') delete restored.folderId;
+  data.push(restored);
+  trash = trash.filter(function(value){ return value.id !== id; });
+  save(); saveTrash();
+  return true;
+}
+async function permanentlyDelete(id) {
+  try { await delFile(id); } catch (_) {}
+  trash = trash.filter(function(value){ return value.id !== id; });
+  saveTrash();
+}
+async function cleanupTrash() {
+  const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  const expired = trash.filter(function(item){ return (item.deletedAt || 0) < cutoff; });
+  if (!expired.length) return;
+  for (const item of expired) { try { await delFile(item.id); } catch (_) {} }
+  trash = trash.filter(function(item){ return (item.deletedAt || 0) >= cutoff; });
+  saveTrash();
+}
 function saveFolders() { localStorage.setItem('aiLibraryFolders', JSON.stringify(folders)); }
 function folderNameFor(id) {
   const folder = folders.find(function (f) { return f.id === id; });
@@ -143,7 +187,7 @@ function renderFolders() {
     button.onclick = function () {
       activeFolder = button.dataset.folder;
       renderFolders();
-      render();
+      cleanupTrash().then(render);
     };
   });
 }
@@ -173,6 +217,7 @@ function counts() {
   [imageCount, statImages].forEach(function (element) { element.textContent = images; });
   [promptCount, statPrompts].forEach(function (element) { element.textContent = prompts; });
   if (starCount) starCount.textContent = starred;
+  if (trashCount) trashCount.textContent = trash.length;
   if (statStorage) statStorage.textContent = sizeText(storage);
   if (storageFill) storageFill.style.width = Math.min(100, (storage / (100 * 1024 * 1024)) * 100) + '%';
   if (storageMeta) storageMeta.textContent = storage ? 'Local • ' + sizeText(storage) + ' used' : 'Stored on this device';
@@ -188,6 +233,7 @@ function sorted(list) {
 }
 
 function itemMarkup(item) {
+  const isTrash = filter === 'trash';
   const label = item.type === 'images' ? 'IMAGE' : item.type === 'prompts' ? 'PROMPT' : 'FILE';
   const action = item.type === 'prompts' ? 'View' : 'Open';
   const aiAction = item.type === 'prompts' ? 'Use prompt' : 'Ask AI';
@@ -197,15 +243,15 @@ function itemMarkup(item) {
   const favoriteClass = item.favorite ? ' is-favorite' : '';
   const preview = item.preview ? ' style="background-image:url(' + item.preview + ')"' : '';
   const icon = item.preview ? '' : (item.type === 'images' ? '▧' : item.type === 'prompts' ? '✦' : '▤');
-  return '<article class="item" data-item-id="' + esc(item.id) + '">' +
+  const trashMeta = isTrash ? '<div class="trash-meta">Deleted ' + esc(new Date(item.deletedAt || Date.now()).toLocaleDateString()) + ' • recoverable for 30 days</div>' : '';
+  return '<article class="item' + (isTrash ? ' is-trash' : '') + '" data-item-id="' + esc(item.id) + '">' +
     '<div class="thumb ' + (item.type === 'images' ? 'image' : '') + '"' + preview + '>' +
       (selectMode ? '<label class="select-check"><input type="checkbox" data-select="' + esc(item.id) + '"' + checked + '><span></span></label>' : '') +
-      '<span class="type-badge">' + label + '</span><button type="button" class="favorite' + favoriteClass + '" data-favorite="' + esc(item.id) + '" aria-label="Toggle favorite">' + favorite + '</button>' + icon +
+      '<span class="type-badge">' + label + '</span>' + (!isTrash ? '<button type="button" class="favorite' + favoriteClass + '" data-favorite="' + esc(item.id) + '" aria-label="Toggle favorite">' + favorite + '</button>' : '') + icon +
     '</div>' +
     '<div class="info"><div class="folder-label">' + esc(folderNameFor(item.folderId)) + '</div><div class="name" title="' + esc(item.name) + '">' + esc(item.name) + '</div>' +
-      '<div class="meta">' + esc(item.meta || 'Library item') + '</div><div class="tags">' + tags + '</div></div>' +
-    '<div class="actions"><button type="button" data-ai="' + esc(item.id) + '">' + aiAction + '</button><button type="button" data-open="' + esc(item.id) + '">' + action + '</button>' +
-      '<button type="button" data-del="' + esc(item.id) + '">Delete</button></div>' +
+      '<div class="meta">' + esc(item.meta || 'Library item') + '</div><div class="tags">' + tags + '</div>' + trashMeta + '</div>' +
+    '<div class="actions">' + (isTrash ? '<button type="button" data-restore="' + esc(item.id) + '">Restore</button><button type="button" data-permanent="' + esc(item.id) + '">Delete forever</button>' : '<button type="button" data-ai="' + esc(item.id) + '">' + aiAction + '</button><button type="button" data-open="' + esc(item.id) + '">' + action + '</button><button type="button" data-del="' + esc(item.id) + '">Delete</button>') + '</div>' +
   '</article>';
 }
 
@@ -217,9 +263,10 @@ async function render() {
     if (selectedCount) selectedCount.textContent = selected.size + ' selected';
   }
   const query = search.value.trim().toLowerCase();
-  const shown = sorted(data.filter(function (item) {
-    const matchesFilter = filter === 'all' || (filter === 'starred' ? item.favorite === true : item.type === filter);
-    const matchesFolder = activeFolder === 'all' || item.folderId === activeFolder;
+  const source = filter === 'trash' ? trash : data;
+  const shown = sorted(source.filter(function (item) {
+    const matchesFilter = filter === 'trash' ? true : (filter === 'all' || (filter === 'starred' ? item.favorite === true : item.type === filter));
+    const matchesFolder = filter === 'trash' ? true : (activeFolder === 'all' || item.folderId === activeFolder);
     const matchesQuery = String(item.name || '').toLowerCase().includes(query) || (item.tags || []).some(function (tag) { return String(tag).toLowerCase().includes(query); });
     return matchesFilter && matchesFolder && matchesQuery;
   }));
@@ -227,8 +274,8 @@ async function render() {
   result.textContent = shown.length + ' item' + (shown.length === 1 ? '' : 's');
   empty.classList.toggle('show', shown.length === 0);
   if (shown.length === 0) {
-    emptyTitle.textContent = query ? 'No matching items' : filter === 'starred' ? 'Nothing starred yet' : 'Your library is ready';
-    emptyText.textContent = query ? 'Try another search or clear the filter.' : filter === 'starred' ? 'Star important files and prompts to keep them close.' : 'Upload files or save a prompt to build your personal AI workspace.';
+    emptyTitle.textContent = query ? 'No matching items' : filter === 'starred' ? 'Nothing starred yet' : filter === 'trash' ? 'Trash is empty' : 'Your library is ready';
+    emptyText.textContent = query ? 'Try another search or clear the filter.' : filter === 'starred' ? 'Star important files and prompts to keep them close.' : filter === 'trash' ? 'Deleted items stay here for 30 days before automatic cleanup.' : 'Upload files or save a prompt to build your personal AI workspace.';
   }
   itemsEl.classList.toggle('list', view === 'list');
   itemsEl.innerHTML = shown.map(itemMarkup).join('');
@@ -237,13 +284,24 @@ async function render() {
     button.onclick = async function () {
       const item = data.find(function (value) { return value.id === button.dataset.del; });
       if (!item) return;
-      try {
-        if (item.type !== 'prompts') await delFile(item.id);
-      } catch (_) {}
+      moveToTrash([item]);
       data = data.filter(function (value) { return value.id !== button.dataset.del; });
       save();
       await render();
-      notify('Removed from library');
+      notify('Moved to Trash');
+    };
+  });
+  itemsEl.querySelectorAll('[data-restore]').forEach(function(button){
+    button.onclick = async function(){
+      if (await restoreFromTrash(button.dataset.restore)) { await render(); notify('Restored to Library'); }
+    };
+  });
+  itemsEl.querySelectorAll('[data-permanent]').forEach(function(button){
+    button.onclick = async function(){
+      if (!confirm('Permanently delete this item? This cannot be undone.')) return;
+      await permanentlyDelete(button.dataset.permanent);
+      await render();
+      notify('Permanently deleted');
     };
   });
 
@@ -267,6 +325,7 @@ async function render() {
   });
   itemsEl.querySelectorAll('.item').forEach(function (card) {
     card.oncontextmenu = function (event) {
+      if (filter === 'trash') return;
       event.preventDefault();
       contextId = card.dataset.itemId;
       if (contextMenu) {
@@ -395,11 +454,17 @@ if (bulkStar) bulkStar.onclick = function () {
   data.forEach(function(item){ if(selected.has(item.id)) item.favorite = true; }); save(); render(); notify('Selected items starred');
 };
 if (bulkDelete) bulkDelete.onclick = async function () {
-  if (!selected.size || !confirm('Delete selected library items?')) return;
+  if (!selected.size || !confirm(filter === 'trash' ? 'Permanently delete selected trash items?' : 'Move selected library items to Trash?')) return;
   const ids = Array.from(selected);
-  for (const id of ids) { try { await delFile(id); } catch (_) {} }
-  data = data.filter(function(item){ return !selected.has(item.id); });
-  selected.clear(); save(); render(); notify(ids.length + ' items deleted');
+  if (filter === 'trash') {
+    for (const id of ids) await permanentlyDelete(id);
+  } else {
+    const moved = data.filter(function(item){ return selected.has(item.id); });
+    moveToTrash(moved);
+    data = data.filter(function(item){ return !selected.has(item.id); });
+    save();
+  }
+  selected.clear(); await render(); notify(ids.length + (filter === 'trash' ? ' items permanently deleted' : ' items moved to Trash'));
 };
 if (bulkDownload) bulkDownload.onclick = async function () {
   const ids = Array.from(selected);
@@ -488,12 +553,26 @@ document.querySelectorAll('.views button').forEach(function (button) {
 });
 
 document.getElementById('clear').onclick = async function () {
-  if (!data.length || !confirm('Clear all local library items?')) return;
+  if (!data.length || !confirm('Move all local library items to Trash?')) return;
+  moveToTrash(data);
   data = [];
   save();
-  await clearFiles();
+  activeFolder = 'all';
+  filter = 'trash';
+  document.querySelectorAll('nav button').forEach(function(navButton){ navButton.classList.toggle('active', navButton.dataset.filter === 'trash'); });
+  heading.textContent = 'Trash';
   await render();
-  notify('Library cleared');
+  notify('Library moved to Trash');
+};
+if (emptyTrashBtn) emptyTrashBtn.onclick = async function(){
+  if (!trash.length || !confirm('Empty Trash permanently? This cannot be undone.')) return;
+  const count = trash.length;
+  for (const item of trash) { try { await delFile(item.id); } catch (_) {} }
+  trash = [];
+  saveTrash();
+  filter = 'trash';
+  await render();
+  notify(count + ' items permanently deleted');
 };
 
 document.getElementById('savePromptOpen').onclick = function () {
