@@ -34,6 +34,7 @@ const closeFolder = document.getElementById('closeFolder');
 const createFolderBtn = document.getElementById('createFolder');
 const folderName = document.getElementById('folderName');
 const selectModeBtn = document.getElementById('selectMode');
+const smartOrganizeBtn = document.getElementById('smartOrganize');
 const bulkBar = document.getElementById('bulkBar');
 const selectedCount = document.getElementById('selectedCount');
 const bulkStar = document.getElementById('bulkStar');
@@ -385,6 +386,16 @@ if (bulkDownload) bulkDownload.onclick = async function () {
   }
   notify(ids.length + ' download' + (ids.length === 1 ? '' : 's') + ' started');
 }
+if (smartOrganizeBtn) smartOrganizeBtn.onclick = function () {
+  const map = { files: 'Documents', images: 'Images', prompts: 'Prompts' };
+  let changed = 0;
+  Object.keys(map).forEach(function(type) {
+    let folder = folders.find(function(f){ return f.name.toLowerCase() === map[type].toLowerCase(); });
+    if (!folder) { folder = { id: crypto.randomUUID(), name: map[type], createdAt: Date.now() }; folders.push(folder); }
+    data.forEach(function(item){ if(item.type === type && item.folderId !== folder.id){ item.folderId = folder.id; changed++; } });
+  });
+  saveFolders(); save(); activeFolder = 'all'; renderFolders(); render(); notify(changed ? 'Library organized by type' : 'Library is already organized');
+};
 if (contextMenu) contextMenu.querySelectorAll('[data-context]').forEach(function(button){
   button.onclick = async function(){
     const item = data.find(function(v){ return v.id === contextId; });
@@ -394,6 +405,7 @@ if (contextMenu) contextMenu.querySelectorAll('[data-context]').forEach(function
     if(action === 'star'){ item.favorite = !item.favorite; save(); render(); return notify(item.favorite ? 'Added to Starred' : 'Removed from Starred'); }
     if(action === 'rename'){ const name = prompt('Rename item', item.name); if(name && name.trim()){ item.name = name.trim(); save(); render(); notify('Renamed'); } return; }
     if(action === 'copy'){ try { await navigator.clipboard.writeText(item.name); notify('Name copied'); } catch (_) { notify('Clipboard unavailable'); } return; }
+    if(action === 'tag'){ const tag = prompt('Add a tag (without #)', (item.tags || []).join(', ')); if(tag !== null){ item.tags = tag.split(',').map(function(v){ return v.trim().replace(/^#/, ''); }).filter(Boolean).slice(0,8); save(); render(); notify('Tags updated'); } return; }
     if(action === 'delete'){ try { await delFile(item.id); } catch (_) {} data = data.filter(function(v){ return v.id !== item.id; }); save(); render(); notify('Removed from library'); }
   };
 });
