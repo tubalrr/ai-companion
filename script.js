@@ -265,8 +265,12 @@ Error generating stack: `+o.message+`
     // Keep the dashboard publicly viewable like ChatGPT; authentication is
     // required only when the user actually starts an AI conversation.
     try{
-      const existingToken=localStorage.getItem("ai_companion_access_token");
-      const auth=existingToken ? {status:200,ok:true,json:async()=>({ok:true,token:existingToken})} : await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store",headers:window.aiCompanionAuthHeaders()});
+      let auth=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store",headers:window.aiCompanionAuthHeaders()});
+      if(auth.status===401){
+        // A stale local token must not block a valid login cookie.
+        localStorage.removeItem("ai_companion_access_token");
+        auth=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store"});
+      }
       if(auth.status===401){
         let modal=document.getElementById("ai-auth-modal");
         if(!modal){
@@ -309,7 +313,10 @@ Error generating stack: `+o.message+`
         body:JSON.stringify({messages:history})
       });
       const data=await response.json().catch(()=>({}));
-      if(response.status===401){localStorage.removeItem("ai_companion_access_token");throw new Error("SESSION_EXPIRED");}
+      if(response.status===401){
+        localStorage.removeItem("ai_companion_access_token");
+        throw new Error("SESSION_EXPIRED");
+      }
       if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
       const answer=String(data.text||"").trim()||"The AI returned an empty response.";
       history.push({role:"assistant",content:answer});
