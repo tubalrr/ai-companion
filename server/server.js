@@ -25,7 +25,7 @@ const root = path.resolve(__dirname, "..");
 if (!process.env.OPENAI_API_KEY) console.warn("OPENAI_API_KEY is not set. Add it to server/.env before starting the server.");
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "12mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "").split(",").map(x => x.trim()).filter(Boolean);
@@ -75,6 +75,21 @@ async function initAuthDb(){
     );
     CREATE INDEX IF NOT EXISTS conversations_user_updated_idx ON conversations(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(conversation_id, id);
+    CREATE TABLE IF NOT EXISTS library_assets (
+      id UUID NOT NULL,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      size BIGINT NOT NULL DEFAULT 0,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('active','trash')),
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      mime_type TEXT,
+      file_data BYTEA,
+      PRIMARY KEY (user_id, id)
+    );
+    CREATE INDEX IF NOT EXISTS library_assets_user_updated_idx ON library_assets(user_id, updated_at DESC);
   `);
 }
 
@@ -221,6 +236,57 @@ app.post("/api/conversations/:id/messages", requireAuth, async (req,res)=>{
     await pool.query("UPDATE conversations SET updated_at=NOW() WHERE id=$1",[req.params.id]);
     res.status(201).json({ok:true,message:result.rows[0]});
   }catch(e){console.error(e);res.status(500).json({error:"Could not save message"});}
+});
+
+app.post("/api/library/sync", requireAuth, async(req,res)=>{
+  const assets=Array.isArray(req.body?.assets)?req.body.assets:[];
+  if(assets.length>100) return res.status(400).json({error:"Library sync is limited to 100 items per request"});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    for(const asset of assets){
+      const id=String(asset?.id||"");
+      const name=String(asset?.name||"Untitled").slice(0,255);
+      const type=String(asset?.type||"files").slice(0,40);
+      const state=asset?.state==="trash"?"trash":"active";
+      const size=Math.max(0,Number(asset?.size)||0);
+      const createdAt=Math.max(0,Number(asset?.createdAt)||Date.now());
+      const updatedAt=Math.max(createdAt,Number(asset?.updatedAt)||createdAt);
+      const metadata=asset?.metadata&&typeof asset.metadata==="object"?asset.metadata:{};
+      const mimeType=String(asset?.mimeType||"application/octet-stream").slice(0,120);
+      const raw=String(asset?.dataBase64||"");
+      let fileData=null;
+      if(raw){
+        if(raw.length>11000000) return res.status(413).json({error:"A library file is too large to sync"});
+        fileData=Buffer.from(raw,"base64");
+      }
+      await client.query(
+        "INSERT INTO library_assets(id,user_id,name,type,size,created_at,updated_at,state,metadata,mime_type,file_data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(user_id,id) DO UPDATE SET name=EXCLUDED.name,type=EXCLUDED.type,size=EXCLUDED.size,created_at=EXCLUDED.created_at,updated_at=EXCLUDED.updated_at,state=EXCLUDED.state,metadata=EXCLUDED.metadata,mime_type=EXCLUDED.mime_type,file_data=COALESCE(EXCLUDED.file_data,library_assets.file_data) WHERE EXCLUDED.updated_at >= library_assets.updated_at",
+        [id,req.user.id,name,type,size,createdAt,updatedAt,state,metadata,mimeType,fileData]
+      );
+    }
+    const result=await client.query("SELECT id,name,type,size,created_at,updated_at,state,metadata,mime_type,file_data FROM library_assets WHERE user_id=$1 ORDER BY updated_at DESC",[req.user.id]);
+    await client.query("COMMIT");
+    res.json({ok:true,assets:result.rows.map(row=>({
+      id:row.id,name:row.name,type:row.type,size:Number(row.size||0),createdAt:Number(row.created_at||0),
+      updatedAt:Number(row.updated_at||0),state:row.state,metadata:row.metadata||{},mimeType:row.mime_type||"application/octet-stream",
+      dataBase64:row.file_data?Buffer.from(row.file_data).toString("base64"):null
+    }))});
+  }catch(e){
+    await client.query("ROLLBACK");
+    console.error(e); res.status(500).json({error:"Could not sync Library"});
+  }finally{ client.release(); }
+});
+
+app.get("/api/library/file/:id", requireAuth, async(req,res)=>{
+  try{
+    const result=await pool.query("SELECT name,mime_type,file_data FROM library_assets WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);
+    const row=result.rows[0];
+    if(!row||!row.file_data) return res.status(404).json({error:"File not found"});
+    res.setHeader("Content-Type",row.mime_type||"application/octet-stream");
+    res.setHeader("Content-Disposition",'inline; filename="' + String(row.name).replace(/["\\\r\n]/g,"_") + '"');
+    res.send(row.file_data);
+  }catch(e){console.error(e);res.status(500).json({error:"Could not load cloud file"});}
 });
 
 app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.OPENAI_API_KEY),model,service:"AI Companion backend"}));
