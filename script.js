@@ -741,6 +741,7 @@ Error generating stack: `+o.message+`
       const response=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store",headers:window.aiCompanionAuthHeaders()});
       if(!response.ok)return;
       const data=await response.json();
+      if(data.token) localStorage.setItem("ai_companion_access_token",data.token);
       const user=data.user||{};
       const account=data.account||{};
       const displayName=String(user.displayName||user.email||"AI User").trim();
