@@ -22,6 +22,7 @@ document.getElementById("login").onclick=async()=>{
   const r=await fetch(apiBase()+"/api/auth/login",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
   const d=await readApiResponse(r);
   if(!r.ok)throw new Error(d.error||"Login failed");
+  if(d.token)localStorage.setItem("ai_companion_access_token",d.token);
   const returnTo=new URLSearchParams(location.search).get("return"); location.href=returnTo ? "../"+returnTo.replace(/^\/+/, "") : "../index.html";
  }catch(e){error.textContent=e.message}
 };
