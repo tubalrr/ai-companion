@@ -157,7 +157,7 @@ async function buildCloudAsset(item,state){
   const file=await getFile(item.id);
   if(!file) return null;
   if(file.size>6*1024*1024) throw new Error(item.name+' is larger than the 6 MB cloud-sync limit');
-  return {id:item.id,name:item.name,type:item.type,size:item.size||file.size,createdAt:item.createdAt||Date.now(),updatedAt:item.updatedAt||item.createdAt||Date.now(),state,metadata:{meta:item.meta||'',favorite:!!item.favorite,tags:item.tags||[],folderId:item.folderId||null},mimeType:file.type||'application/octet-stream',dataBase64:await blobToBase64(file)};
+  return {id:item.id,name:item.name,type:item.type,size:item.size||file.size,createdAt:item.createdAt||Date.now(),updatedAt:item.updatedAt||item.createdAt||Date.now(),state,metadata:{meta:item.meta||'',favorite:!!item.favorite,tags:item.tags||[],folderId:item.folderId||null,deletedAt:item.deletedAt||null,previousFolderId:item.previousFolderId||null},mimeType:file.type||'application/octet-stream',dataBase64:await blobToBase64(file)};
 }
 function applyCloudAsset(asset){
   const target=asset.state==='trash'?trash:data;
