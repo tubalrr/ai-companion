@@ -89,6 +89,48 @@ Error generating stack: `+o.message+`
 
   const input=()=>document.querySelector('input[placeholder*="Ask anything"]');
 
+  const loadLibraryAssetContext=async()=>{
+    const params=new URLSearchParams(location.search);
+    const assetId=params.get("libraryAsset");
+    if(!assetId)return;
+    let context=null;
+    try{context=JSON.parse(sessionStorage.getItem("aiCompanionLibraryContext")||"null");}catch(_){}
+    if(!context||context.id!==assetId)return;
+    let extra="";
+    try{
+      const request=indexedDB.open("AICompanionLibraryDB",1);
+      const db=await new Promise((resolve,reject)=>{
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+      const file=await new Promise((resolve,reject)=>{
+        const req=db.transaction("files","readonly").objectStore("files").get(assetId);
+        req.onsuccess=()=>resolve(req.result);
+        req.onerror=()=>reject(req.error);
+      });
+      if(file && /^(text\\/|application\\/(json|javascript|xml)|text$)/i.test(file.type||"")){
+        const text=await file.text();
+        extra="\\n\\nFile content:\\n"+text.slice(0,20000);
+      }
+    }catch(_){}
+    const requestText=context.type==="prompts"
+      ?"Use this saved prompt from my Library and help me work with it: "+context.name
+      :"I want help with this Library asset: "+context.name+"\\nType: "+context.type+"\\nFolder: "+(context.folder||"All items")+"\\nTags: "+((context.tags||[]).join(", ")||"none")+extra+"\\n\\nTell me what you can do with this asset.";
+    const wait=()=>{
+      const el=input();
+      if(!el){setTimeout(wait,250);return;}
+      const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+      if(setter)setter.call(el,requestText);else el.value=requestText;
+      el.dispatchEvent(new Event("input",{bubbles:true}));
+      el.focus();
+      sessionStorage.removeItem("aiCompanionLibraryContext");
+      history.replaceState(null,"",location.pathname);
+    };
+    setTimeout(wait,350);
+  };
+
+  loadLibraryAssetContext();
+
   const setPrompt=(value)=>{
     const el=input();
     if(!el)return;
