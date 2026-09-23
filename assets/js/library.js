@@ -289,6 +289,19 @@ async function render() {
     };
   });
 
+  itemsEl.querySelectorAll('[data-ai]').forEach(function (button) {
+    button.onclick = function (event) {
+      event.stopPropagation();
+      const item = data.find(function (value) { return value.id === button.dataset.ai; });
+      if (!item) return;
+      sessionStorage.setItem('aiCompanionLibraryContext', JSON.stringify({
+        id: item.id, name: item.name, type: item.type, size: item.size || 0,
+        meta: item.meta || '', tags: item.tags || [], folder: folderNameFor(item.folderId)
+      }));
+      location.href = '../index.html?libraryAsset=' + encodeURIComponent(item.id);
+    };
+  });
+
   itemsEl.querySelectorAll('[data-open]').forEach(function (button) {
     button.onclick = function () { openItem(button.dataset.open); };
   });
