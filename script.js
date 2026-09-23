@@ -399,6 +399,65 @@ Error generating stack: `+o.message+`
   },true);
 })();
 
+/* Global Workspace Search */
+(function(){
+  const libraryKey="aiLibrary";
+  const create=()=>{
+    if(document.getElementById("global-search-overlay"))return;
+    const overlay=document.createElement("div");
+    overlay.id="global-search-overlay";
+    overlay.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(3,5,14,.68);backdrop-filter:blur(12px);display:none;align-items:flex-start;justify-content:center;padding:9vh 18px";
+    overlay.innerHTML='<div style="width:min(720px,100%);border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(16,19,33,.98);box-shadow:0 30px 100px rgba(0,0,0,.55);overflow:hidden;color:#fff;font-family:system-ui,sans-serif">'+
+      '<div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font-size:20px;color:#a78bfa">⌕</span><input id="global-search-input" autocomplete="off" placeholder="Search Library, prompts, responses, conversations..." style="flex:1;border:0;outline:0;background:transparent;color:#fff;font-size:16px"><kbd style="opacity:.5">ESC</kbd></div>'+
+      '<div id="global-search-results" style="max-height:62vh;overflow:auto;padding:8px"></div>'+
+      '<div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.4)">Search across your workspace • Library • AI responses • conversations • tags</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener("click",e=>{if(e.target===overlay)close()});
+    overlay.querySelector("#global-search-input").addEventListener("input",e=>searchAll(e.target.value));
+    overlay.querySelector("#global-search-input").addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+  };
+  const close=()=>{const o=document.getElementById("global-search-overlay");if(o)o.style.display="none"};
+  const open=async()=>{
+    create();
+    const o=document.getElementById("global-search-overlay");
+    o.style.display="flex";
+    const input=document.getElementById("global-search-input");
+    input.value="";
+    renderResults([]);
+    input.focus();
+    await searchAll("");
+  };
+  const renderResults=(groups)=>{
+    const box=document.getElementById("global-search-results"); if(!box)return;
+    if(!groups.length){box.innerHTML='<div style="padding:28px;text-align:center;color:rgba(255,255,255,.45)">Start typing to search your workspace.</div>';return}
+    box.innerHTML=groups.map((g,i)=>'<button data-result-index="'+i+'" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:0;background:transparent;color:#fff;text-align:left;border-radius:12px;cursor:pointer">'+
+      '<span style="width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:rgba(139,92,246,.10);color:#a78bfa;font-size:17px">'+g.icon+'</span>'+
+      '<span style="min-width:0;flex:1"><strong style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escSearch(g.title)+'</strong><small style="display:block;margin-top:3px;color:rgba(255,255,255,.42)">'+escSearch(g.meta)+'</small></span><span style="font-size:11px;color:rgba(255,255,255,.25)">›</span></button>').join("");
+    box.querySelectorAll("[data-result-index]").forEach(b=>b.onclick=()=>groups[Number(b.dataset.resultIndex)].open());
+  };
+  const escSearch=v=>String(v||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+  const searchAll=async(query)=>{
+    const q=String(query||"").trim().toLowerCase();
+    const results=[];
+    let library=[];
+    try{library=JSON.parse(localStorage.getItem(libraryKey)||"[]")}catch(_){}
+    library.filter(x=>!q||String(x.name).toLowerCase().includes(q)||String(x.meta||"").toLowerCase().includes(q)||(x.tags||[]).some(t=>String(t).toLowerCase().includes(q))).slice(0,12).forEach(x=>{
+      results.push({icon:x.type==="images"?"▧":x.type==="prompts"?"✦":"▤",title:x.name,meta:"Library • "+(x.tags?.length?x.tags.map(t=>"#"+t).join(" "):x.meta||x.type),open:()=>{if(x.type==="prompts"||x.type==="files"||x.type==="images"){sessionStorage.setItem("aiCompanionLibraryContext",JSON.stringify({id:x.id,name:x.name,type:x.type,size:x.size||0,meta:x.meta||"",tags:x.tags||[],folder:x.folderId||"all"}));location.href="pages/library.html?open="+encodeURIComponent(x.id)}}});
+    });
+    try{
+      const data=await cloudFetch("/api/conversations");
+      (data?.conversations||[]).filter(x=>!q||String(x.title).toLowerCase().includes(q)).slice(0,8).forEach(x=>{
+        results.push({icon:"💬",title:x.title,meta:"Conversation • AI Companion",open:()=>openCloudConversation(x.id,x.title)});
+      });
+    }catch(_){}
+    renderResults(results.slice(0,20));
+  };
+  document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();open()}});
+  document.addEventListener("click",e=>{if(e.target.closest("[data-global-search]")){e.preventDefault();open()}});
+  window.aiCompanionOpenGlobalSearch=open;
+  create();
+})();
+
 
 /* Bottom profile menu */
 (function(){
