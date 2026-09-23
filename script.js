@@ -288,6 +288,10 @@ Error generating stack: `+o.message+`
       });
       const data=await response.json().catch(()=>({}));
 
+      if(response.status===429 && data.code==="GUEST_LIMIT_REACHED"){
+        renderMessage("assistant","Guest limit reached for today ("+String(data.limit||10)+" chats). Log in to continue chatting and unlock cloud history and other account features.");
+        return;
+      }
       if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
 
       const answer=String(data.text||"").trim()||"The AI returned an empty response.";
