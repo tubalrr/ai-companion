@@ -728,7 +728,7 @@ Error generating stack: `+o.message+`
     if(!style){
       style=document.createElement("style");
       style.id="ai-chat-home-hide-style";
-      style.textContent="body.ai-chat-active .ai-home-welcome,body.ai-chat-active .ai-suggestion-card{display:none!important}";
+      style.textContent="body.ai-chat-active button.ai-suggestion-card,body.ai-chat-active .ai-home-welcome{display:none!important}";
       document.head.appendChild(style);
     }
 
