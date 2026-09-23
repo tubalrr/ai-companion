@@ -190,6 +190,7 @@ function sorted(list) {
 function itemMarkup(item) {
   const label = item.type === 'images' ? 'IMAGE' : item.type === 'prompts' ? 'PROMPT' : 'FILE';
   const action = item.type === 'prompts' ? 'View' : 'Open';
+  const aiAction = item.type === 'prompts' ? 'Use prompt' : 'Ask AI';
   const favorite = item.favorite ? '★' : '☆';
   const checked = selected.has(item.id) ? ' checked' : '';
   const tags = (item.tags || []).slice(0,3).map(function(tag){ return '<span class="tag">#' + esc(tag) + '</span>'; }).join('');
@@ -203,7 +204,7 @@ function itemMarkup(item) {
     '</div>' +
     '<div class="info"><div class="folder-label">' + esc(folderNameFor(item.folderId)) + '</div><div class="name" title="' + esc(item.name) + '">' + esc(item.name) + '</div>' +
       '<div class="meta">' + esc(item.meta || 'Library item') + '</div><div class="tags">' + tags + '</div></div>' +
-    '<div class="actions"><button type="button" data-open="' + esc(item.id) + '">' + action + '</button>' +
+    '<div class="actions"><button type="button" data-ai="' + esc(item.id) + '">' + aiAction + '</button><button type="button" data-open="' + esc(item.id) + '">' + action + '</button>' +
       '<button type="button" data-del="' + esc(item.id) + '">Delete</button></div>' +
   '</article>';
 }
@@ -275,6 +276,19 @@ async function render() {
       }
     };
   });
+  itemsEl.querySelectorAll('[data-ai]').forEach(function (button) {
+    button.onclick = function (event) {
+      event.stopPropagation();
+      const item = data.find(function (value) { return value.id === button.dataset.ai; });
+      if (!item) return;
+      sessionStorage.setItem('aiCompanionLibraryContext', JSON.stringify({
+        id: item.id, name: item.name, type: item.type, size: item.size || 0,
+        meta: item.meta || '', tags: item.tags || [], folder: folderNameFor(item.folderId)
+      }));
+      location.href = '../index.html?libraryAsset=' + encodeURIComponent(item.id);
+    };
+  });
+
   itemsEl.querySelectorAll('[data-open]').forEach(function (button) {
     button.onclick = function () { openItem(button.dataset.open); };
   });
@@ -401,6 +415,11 @@ if (contextMenu) contextMenu.querySelectorAll('[data-context]').forEach(function
     const item = data.find(function(v){ return v.id === contextId; });
     contextMenu.hidden = true; if (!item) return;
     const action = button.dataset.context;
+    if(action === 'ai'){
+      sessionStorage.setItem('aiCompanionLibraryContext', JSON.stringify({id:item.id,name:item.name,type:item.type,size:item.size||0,meta:item.meta||'',tags:item.tags||[],folder:folderNameFor(item.folderId)}));
+      location.href = '../index.html?libraryAsset=' + encodeURIComponent(item.id);
+      return;
+    }
     if(action === 'open') return openItem(item.id);
     if(action === 'star'){ item.favorite = !item.favorite; save(); render(); return notify(item.favorite ? 'Added to Starred' : 'Removed from Starred'); }
     if(action === 'rename'){ const name = prompt('Rename item', item.name); if(name && name.trim()){ item.name = name.trim(); save(); render(); notify('Renamed'); } return; }
