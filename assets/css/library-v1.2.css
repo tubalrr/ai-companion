@@ -152,3 +152,5 @@
 .trash-meta{font-size:9px;color:#c88b93;margin-top:7px}
 .item.is-trash .actions button:first-child{color:#aee8d9;border-color:#35ddc025}
 .item.is-trash .actions button:last-child{color:#ffabb4;border-color:#ff647025}
+
+.cloud-sync{border-color:#6ea8ff33!important;color:#b9d4ff!important}.cloud-sync:hover{background:#6ea8ff12!important;border-color:#6ea8ff55!important}.cloud-sync:disabled{opacity:.55;cursor:wait}.cloud-status{display:block;margin-top:8px;color:#8e97aa;font-size:10px;letter-spacing:.02em}
