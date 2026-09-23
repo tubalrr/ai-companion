@@ -110,3 +110,31 @@
  .drop{flex-wrap:wrap}.drop button{width:100%;margin-left:55px}
  .searchbox kbd{display:none}
 }
+
+/* Library 2.0 — organization, selection and productivity */
+.compact{padding:9px 12px!important;font-size:11px}
+.folder-bar{display:flex;gap:7px;overflow:auto;padding:4px 0 2px;margin-top:18px;scrollbar-width:thin}
+.folder-bar button{border:1px solid #ffffff0d;background:#ffffff05;color:#858ca0;border-radius:10px;padding:8px 11px;white-space:nowrap;cursor:pointer}
+.folder-bar button:hover{color:#fff;background:#ffffff09}
+.folder-bar button.active{color:#fff;background:#8b6cff16;border-color:#8b6cff42}
+.bulk-bar{display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid #8b6cff2b;background:linear-gradient(90deg,#8b6cff10,#35ddc008);border-radius:13px;color:#cdd1df;font-size:11px}
+.bulk-bar.show{display:flex}
+.bulk-bar>div{display:flex;gap:6px;flex-wrap:wrap}
+.bulk-bar button{border:1px solid #ffffff10;background:#ffffff07;color:#bfc4d5;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:10px}
+.bulk-bar button:hover{background:#ffffff0d;color:#fff}
+.item{cursor:default}
+.select-check{position:absolute;left:9px;bottom:9px;width:28px;height:28px;z-index:3}
+.select-check input{position:absolute;opacity:0}
+.select-check span{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(5,7,14,.78);border:1px solid #ffffff25;backdrop-filter:blur(8px);cursor:pointer}
+.select-check input:checked+span{background:#8b6cff;border-color:#b6a8ff;box-shadow:0 0 18px #8b6cff45}
+.select-check input:checked+span:after{content:"✓";color:#fff;font-weight:800;font-size:13px}
+.folder-label{font-size:9px;color:#676f83;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;min-height:15px}
+.tag{font-size:8px;color:#9e94df;background:#8b6cff10;border:1px solid #8b6cff1c;border-radius:5px;padding:3px 5px}
+.context-menu{position:fixed;z-index:100;width:175px;padding:6px;border:1px solid #ffffff15;background:rgba(17,21,34,.96);backdrop-filter:blur(18px);border-radius:13px;box-shadow:0 22px 60px #0009}
+.context-menu[hidden]{display:none}
+.context-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;color:#cbd0df;border-radius:8px;padding:9px 10px;cursor:pointer;font-size:11px}
+.context-menu button:hover{background:#ffffff0a;color:#fff}
+.context-menu button[data-context="delete"]:hover{background:#ff647014;color:#ff9aa7}
+.section-actions{flex-wrap:wrap}
+@media(max-width:760px){.section-actions{width:100%;margin-top:8px}.section-head{align-items:flex-start;flex-direction:column}.bulk-bar{align-items:flex-start;flex-direction:column}.bulk-bar>div{width:100%}.bulk-bar button{flex:1}}
