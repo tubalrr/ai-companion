@@ -456,6 +456,21 @@ Error generating stack: `+o.message+`
   document.addEventListener("click",e=>{if(e.target.closest("[data-global-search]")){e.preventDefault();open()}});
   window.aiCompanionOpenGlobalSearch=open;
   create();
+  const addSearchButton=()=>{
+    if(document.getElementById("global-search-trigger"))return;
+    const b=document.createElement("button");
+    b.id="global-search-trigger";
+    b.type="button";
+    b.setAttribute("data-global-search","true");
+    b.title="Global search (Ctrl K)";
+    b.innerHTML="⌕<span>Search</span><kbd>Ctrl K</kbd>";
+    b.style.cssText="position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9990;display:flex;align-items:center;gap:8px;padding:8px 13px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(15,18,31,.78);backdrop-filter:blur(16px);color:rgba(255,255,255,.72);font:12px system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(0,0,0,.2)";
+    const style=document.createElement("style");
+    style.textContent="#global-search-trigger:hover{background:rgba(139,92,246,.16);color:#fff}#global-search-trigger kbd{font-size:10px;opacity:.45;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:2px 5px}#global-search-trigger span{font-weight:600}";
+    document.head.appendChild(style);
+    document.body.appendChild(b);
+  };
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",addSearchButton,{once:true});else setTimeout(addSearchButton,500);
 })();
 
 
