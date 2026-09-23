@@ -187,7 +187,7 @@ function renderFolders() {
     button.onclick = function () {
       activeFolder = button.dataset.folder;
       renderFolders();
-      cleanupTrash().then(render);
+      render();
     };
   });
 }
@@ -627,4 +627,4 @@ document.addEventListener('keydown', function (event) {
   }
 });
 
-render();
+cleanupTrash().then(render);
