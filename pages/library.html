@@ -16,8 +16,8 @@
 <header>
   <div>
     <a href="../index.html" class="back">← Back to AI Companion</a>
-    <div class="title"><span>▣</span><div><small>AI COMPANION</small><h1>Library</h1></div></div>
-    <p>Your personal space for files, images, documents and saved prompts.</p>
+    <div class="title"><span class="library-logo">▣</span><div><small>AI COMPANION • WORKSPACE</small><h1>Library</h1></div></div>
+    <p>One polished workspace for your files, images, documents, prompts, and creative assets.</p>
   </div>
   <div class="header-actions">
     <button id="savePromptOpen" class="secondary">✦ Save prompt</button>
@@ -26,14 +26,15 @@
 </header>
 
 <section class="library-stats" aria-label="Library overview">
-  <div><span>All items</span><strong id="statAll">0</strong></div>
-  <div><span>Files</span><strong id="statFiles">0</strong></div>
-  <div><span>Images</span><strong id="statImages">0</strong></div>
-  <div><span>Prompts</span><strong id="statPrompts">0</strong></div>
+  <div class="stat-card"><span>All items</span><strong id="statAll">0</strong><small>Everything in your workspace</small></div>
+  <div class="stat-card"><span>Files</span><strong id="statFiles">0</strong><small>Documents & other files</small></div>
+  <div class="stat-card"><span>Images</span><strong id="statImages">0</strong><small>Visual assets</small></div>
+  <div class="stat-card"><span>Prompts</span><strong id="statPrompts">0</strong><small>Saved AI prompts</small></div>
+  <div class="stat-card storage-card"><span>Local storage</span><strong id="statStorage">0 KB</strong><div class="storage-track"><i id="storageFill"></i></div><small id="storageMeta">Stored on this device</small></div>
 </section>
 
 <div class="toolbar">
-  <label class="searchbox">⌕ <input id="search" placeholder="Search files, images, prompts..." autocomplete="off"></label>
+  <label class="searchbox"><span>⌕</span><input id="search" placeholder="Search your library..." autocomplete="off"><kbd>Ctrl K</kbd></label>
   <select id="sort" aria-label="Sort library">
     <option value="newest">Newest</option>
     <option value="oldest">Oldest</option>
@@ -43,24 +44,24 @@
   <div class="views"><button class="active" data-view="grid" aria-label="Grid view">▦</button><button data-view="list" aria-label="List view">☷</button></div>
 </div>
 
-<nav>
-  <button class="active" data-filter="all">All <b id="allCount">0</b></button>
-  <button data-filter="files">Files <b id="fileCount">0</b></button>
-  <button data-filter="images">Images <b id="imageCount">0</b></button>
-  <button data-filter="prompts">Prompts <b id="promptCount">0</b></button>
+<nav class="filters" aria-label="Library filters">
+  <button class="active" data-filter="all"><span>✦</span> All <b id="allCount">0</b></button>
+  <button data-filter="files"><span>▤</span> Files <b id="fileCount">0</b></button>
+  <button data-filter="images"><span>▧</span> Images <b id="imageCount">0</b></button>
+  <button data-filter="prompts"><span>✎</span> Prompts <b id="promptCount">0</b></button>
+  <button data-filter="starred"><span>★</span> Starred <b id="starCount">0</b></button>
 </nav>
 
 <section id="drop" class="drop">
-  <strong>↑ Drop files here</strong>
-  <span>or click Upload to add files to your local library</span>
+  <div class="drop-icon">↥</div><div><strong>Drop anything here</strong><span>Files, images, documents, or multiple assets at once</span></div><button type="button" id="dropUpload">Browse files</button>
 </section>
 
 <section class="content">
   <div class="section-head">
-    <div><h2 id="heading">All items</h2><small id="result">0 items</small></div>
-    <button id="clear">Clear library</button>
+    <div><div class="section-title-row"><h2 id="heading">All items</h2><span class="live-dot"></span></div><small id="result">0 items</small></div>
+    <div class="section-actions"><button id="clear">Clear library</button></div>
   </div>
-  <div id="empty" class="empty"><div>✦</div><h3 id="emptyTitle">Your library is empty</h3><p id="emptyText">Upload something to start building your library.</p></div>
+  <div id="empty" class="empty"><div class="empty-orb">✦</div><h3 id="emptyTitle">Your library is ready</h3><p id="emptyText">Upload files or save a prompt to build your personal AI workspace.</p><button type="button" id="emptyUpload" class="upload">＋ Add your first asset</button></div>
   <div id="items" class="items"></div>
 </section>
 
