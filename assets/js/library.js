@@ -29,6 +29,8 @@ const storageMeta = document.getElementById('storageMeta');
 const starCount = document.getElementById('starCount');
 const trashCount = document.getElementById('trashCount');
 const emptyTrashBtn = document.getElementById('emptyTrash');
+const cloudSyncBtn = document.getElementById('cloudSync');
+const cloudStatus = document.getElementById('cloudStatus');
 const folderBar = document.getElementById('folderBar');
 const newFolderBtn = document.getElementById('newFolder');
 const folderModal = document.getElementById('folderModal');
@@ -137,12 +139,73 @@ function esc(value) {
 function save() {
   localStorage.setItem('aiLibrary', JSON.stringify(data));
 }
+function touch(item){ item.updatedAt = Date.now(); return item; }
+function apiBase(){ return String(window.AI_COMPANION_API_BASE || '').replace(/\/+$/,''); }
+async function cloudRequest(path, options){
+  const response = await fetch(apiBase()+path,Object.assign({credentials:'include'},options||{}));
+  if(response.status===401) return null;
+  const body=await response.json().catch(function(){ return {}; });
+  if(!response.ok) throw new Error(body.error||'Cloud sync failed');
+  return body;
+}
+function blobToBase64(blob){
+  return new Promise(function(resolve,reject){
+    const reader=new FileReader(); reader.onload=function(){ resolve(String(reader.result||'').split(',')[1]||''); }; reader.onerror=reject; reader.readAsDataURL(blob);
+  });
+}
+async function buildCloudAsset(item,state){
+  const file=await getFile(item.id);
+  if(!file) return null;
+  if(file.size>6*1024*1024) throw new Error(item.name+' is larger than the 6 MB cloud-sync limit');
+  return {id:item.id,name:item.name,type:item.type,size:item.size||file.size,createdAt:item.createdAt||Date.now(),updatedAt:item.updatedAt||item.createdAt||Date.now(),state,metadata:{meta:item.meta||'',favorite:!!item.favorite,tags:item.tags||[],folderId:item.folderId||null},mimeType:file.type||'application/octet-stream',dataBase64:await blobToBase64(file)};
+}
+function applyCloudAsset(asset){
+  const target=asset.state==='trash'?trash:data;
+  const other=asset.state==='trash'?data:trash;
+  const item=Object.assign({id:asset.id,name:asset.name,type:asset.type,size:asset.size,createdAt:asset.createdAt,updatedAt:asset.updatedAt},asset.metadata||{});
+  item.id=asset.id; item.name=asset.name; item.type=asset.type; item.size=asset.size; item.createdAt=asset.createdAt; item.updatedAt=asset.updatedAt;
+  if(asset.state==='trash') item.deletedAt=item.deletedAt||asset.updatedAt;
+  const index=target.findIndex(function(v){return v.id===asset.id;});
+  if(index>=0) target[index]=item; else target.push(item);
+  const otherIndex=other.findIndex(function(v){return v.id===asset.id;});
+  if(otherIndex>=0) other.splice(otherIndex,1);
+}
+async function syncCloud(){
+  if(cloudSyncBtn) cloudSyncBtn.disabled=true;
+  if(cloudStatus) cloudStatus.textContent='Syncing…';
+  try{
+    const me=await cloudRequest('/api/auth/me');
+    if(!me?.ok){ if(cloudStatus) cloudStatus.textContent='Sign in to sync'; notify('Sign in to use Cloud Sync'); return; }
+    const assets=[];
+    for(const item of data){ const asset=await buildCloudAsset(item,'active'); if(asset) assets.push(asset); }
+    for(const item of trash){ const asset=await buildCloudAsset(item,'trash'); if(asset) assets.push(asset); }
+    const response=await cloudRequest('/api/library/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({assets})});
+    for(const remote of (response?.assets||[])){
+      const local=data.find(function(v){return v.id===remote.id;})||trash.find(function(v){return v.id===remote.id;});
+      const localUpdated=Number(local?.updatedAt||local?.createdAt||0);
+      if(!local || Number(remote.updatedAt||0)>localUpdated){
+        applyCloudAsset(remote);
+        if(remote.dataBase64){
+          const bytes=Uint8Array.from(atob(remote.dataBase64),function(c){return c.charCodeAt(0);});
+          await putFile(remote.id,new Blob([bytes],{type:remote.mimeType||'application/octet-stream'}));
+        }
+      }
+    }
+    save(); saveTrash();
+    if(cloudStatus) cloudStatus.textContent='Cloud synced • '+new Date().toLocaleTimeString();
+    await render();
+    notify('Library synced to cloud');
+  }catch(error){
+    if(cloudStatus) cloudStatus.textContent='Sync failed';
+    notify(error.message||'Cloud sync failed');
+  }finally{ if(cloudSyncBtn) cloudSyncBtn.disabled=false; }
+}
 function saveTrash() { localStorage.setItem('aiLibraryTrash', JSON.stringify(trash)); }
 function trashSize() { return trash.reduce(function(sum, item){ return sum + (item.size || 0); }, 0); }
 function moveToTrash(items) {
   const now = Date.now();
   items.forEach(function(item){
-    trash.push(Object.assign({}, item, { deletedAt: now, previousFolderId: item.folderId || 'all' }));
+    touch(item); trash.push(Object.assign({}, item, { deletedAt: now, previousFolderId: item.folderId || 'all', updatedAt: now }));
   });
   saveTrash();
 }
@@ -154,7 +217,7 @@ async function restoreFromTrash(id) {
   delete restored.previousFolderId;
   if (item.previousFolderId && item.previousFolderId !== 'all' && folders.some(function(f){ return f.id === item.previousFolderId; })) restored.folderId = item.previousFolderId;
   else if (item.previousFolderId === 'all') delete restored.folderId;
-  data.push(restored);
+  touch(restored); data.push(restored);
   trash = trash.filter(function(value){ return value.id !== id; });
   save(); saveTrash();
   return true;
@@ -311,7 +374,7 @@ async function render() {
       const item = data.find(function (value) { return value.id === button.dataset.favorite; });
       if (!item) return;
       item.favorite = !item.favorite;
-      save();
+      touch(item); save();
       render();
       notify(item.favorite ? 'Added to Starred' : 'Removed from Starred');
     };
@@ -423,6 +486,7 @@ async function add(files) {
       type: isImage ? 'images' : 'files',
       size: file.size,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
       meta: sizeText(file.size) + ' • ' + new Date().toLocaleDateString()
     };
     if (isImage) {
@@ -439,6 +503,7 @@ async function add(files) {
   notify(list.length + ' item' + (list.length === 1 ? '' : 's') + ' added');
 }
 
+if (cloudSyncBtn) cloudSyncBtn.onclick = syncCloud;
 document.getElementById('uploadBtn').onclick = function () { input.click(); };
 if (newFolderBtn) newFolderBtn.onclick = function () { folderName.value = ''; folderModal.classList.add('open'); folderName.focus(); };
 if (closeFolder) closeFolder.onclick = function () { folderModal.classList.remove('open'); };
@@ -502,7 +567,7 @@ if (contextMenu) contextMenu.querySelectorAll('[data-context]').forEach(function
     if(action === 'star'){ item.favorite = !item.favorite; save(); render(); return notify(item.favorite ? 'Added to Starred' : 'Removed from Starred'); }
     if(action === 'rename'){ const name = prompt('Rename item', item.name); if(name && name.trim()){ item.name = name.trim(); save(); render(); notify('Renamed'); } return; }
     if(action === 'copy'){ try { await navigator.clipboard.writeText(item.name); notify('Name copied'); } catch (_) { notify('Clipboard unavailable'); } return; }
-    if(action === 'tag'){ const tag = prompt('Add a tag (without #)', (item.tags || []).join(', ')); if(tag !== null){ item.tags = tag.split(',').map(function(v){ return v.trim().replace(/^#/, ''); }).filter(Boolean).slice(0,8); save(); render(); notify('Tags updated'); } return; }
+    if(action === 'tag'){ const tag = prompt('Add a tag (without #)', (item.tags || []).join(', ')); if(tag !== null){ item.tags = tag.split(',').map(function(v){ return v.trim().replace(/^#/, ''); }).filter(Boolean).slice(0,8); touch(item); save(); render(); notify('Tags updated'); } return; }
     if(action === 'delete'){ try { await delFile(item.id); } catch (_) {} data = data.filter(function(v){ return v.id !== item.id; }); save(); render(); notify('Removed from library'); }
   };
 });
@@ -599,9 +664,10 @@ savePromptBtn.onclick = async function () {
     old.name = title;
     old.meta = 'Saved prompt • ' + new Date().toLocaleDateString();
     old.createdAt = Date.now();
+    old.updatedAt = Date.now();
     old.size = text.length;
   } else {
-    data.push({ id: id, name: title, type: 'prompts', meta: 'Saved prompt • ' + new Date().toLocaleDateString(), createdAt: Date.now(), size: text.length });
+    data.push({ id: id, name: title, type: 'prompts', updatedAt: Date.now(), meta: 'Saved prompt • ' + new Date().toLocaleDateString(), createdAt: Date.now(), size: text.length });
   }
   save();
   modal.classList.remove('open');
