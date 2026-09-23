@@ -353,7 +353,6 @@ app.post("/api/chat", chatLimiter, async(req,res)=>{
       }
       res.setHeader("X-Guest-Chats-Remaining",String(usage.remaining));
     }
-  try{
     const messages=Array.isArray(req.body?.messages)?req.body.messages:[];
     if(!messages.length) return res.status(400).json({error:"messages is required"});
     const safeMessages=messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")).slice(-20).map(m=>({role:m.role,content:String(m.content||"").slice(0,12000)}));
