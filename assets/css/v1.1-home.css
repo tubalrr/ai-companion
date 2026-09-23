@@ -1,0 +1,168 @@
+/* AI Companion v1.1 — homepage polish layer
+   Visual-only enhancements: no backend/API behavior changes.
+*/
+:root{
+  --ac-violet:#8b5cf6;
+  --ac-blue:#3b82f6;
+  --ac-cyan:#22d3ee;
+  --ac-glass:rgba(18,20,34,.68);
+}
+
+body{
+  background:
+    radial-gradient(900px 520px at 58% 12%, rgba(99,102,241,.12), transparent 65%),
+    radial-gradient(720px 460px at 92% 72%, rgba(34,211,238,.07), transparent 68%),
+    #080a14;
+}
+
+#root{
+  isolation:isolate;
+}
+
+/* Softer animated atmosphere behind the dashboard. */
+#root > div.min-h-screen{
+  background:
+    radial-gradient(600px 360px at 62% 38%, rgba(139,92,246,.08), transparent 70%),
+    #080a14 !important;
+}
+
+#root > div.min-h-screen::before{
+  content:"";
+  position:fixed;
+  inset:-20%;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(139,92,246,.07), transparent 24%),
+    radial-gradient(circle at 72% 58%, rgba(59,130,246,.06), transparent 22%);
+  filter:blur(28px);
+  animation:acAmbient 14s ease-in-out infinite alternate;
+}
+
+@keyframes acAmbient{
+  from{transform:translate3d(-1%,0,0) scale(1)}
+  to{transform:translate3d(1.5%,-1%,0) scale(1.04)}
+}
+
+/* Homepage heading gains a little more depth without changing content. */
+#root h1{
+  text-shadow:0 10px 45px rgba(99,102,241,.18);
+}
+
+#root h1 span:last-child{
+  filter:drop-shadow(0 0 18px rgba(139,92,246,.12));
+}
+
+/* Suggestion cards: clearer hierarchy + premium hover motion. */
+#root button.ai-suggestion-card{
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(255,255,255,.09) !important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025)) !important;
+  box-shadow:
+    0 16px 45px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  transition:
+    transform .28s ease,
+    border-color .28s ease,
+    background .28s ease,
+    box-shadow .28s ease;
+}
+
+#root button.ai-suggestion-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.08) 50%,transparent 80%);
+  transform:translateX(-120%);
+  transition:transform .65s ease;
+}
+
+#root button.ai-suggestion-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(139,92,246,.28) !important;
+  background:
+    linear-gradient(145deg,rgba(139,92,246,.12),rgba(59,130,246,.055)) !important;
+  box-shadow:
+    0 20px 55px rgba(0,0,0,.25),
+    0 0 30px rgba(99,102,241,.08),
+    inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+#root button.ai-suggestion-card:hover::before{
+  transform:translateX(120%);
+}
+
+/* Composer gets a more deliberate SaaS-product feel. */
+#root [data-ai-composer]{
+  backdrop-filter:blur(22px) saturate(125%);
+  -webkit-backdrop-filter:blur(22px) saturate(125%);
+}
+
+#root [data-ai-composer] input{
+  transition:box-shadow .25s ease,border-color .25s ease,background .25s ease;
+}
+
+#root [data-ai-composer] input:focus{
+  box-shadow:
+    0 0 0 1px rgba(139,92,246,.42),
+    0 0 28px rgba(99,102,241,.10);
+}
+
+/* Sidebar glass refinement. */
+#root aside{
+  box-shadow:
+    18px 0 55px rgba(0,0,0,.18),
+    inset -1px 0 rgba(255,255,255,.035);
+}
+
+#root aside button{
+  transition:
+    transform .22s ease,
+    background-color .22s ease,
+    color .22s ease,
+    box-shadow .22s ease;
+}
+
+#root aside button:hover{
+  transform:translateX(2px);
+}
+
+/* Better keyboard focus for accessibility. */
+#root button:focus-visible,
+#root a:focus-visible,
+#root input:focus-visible,
+#root textarea:focus-visible{
+  outline:2px solid rgba(139,92,246,.75);
+  outline-offset:2px;
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion:reduce){
+  #root > div.min-h-screen::before,
+  #root button.ai-suggestion-card::before{
+    animation:none !important;
+    transition:none !important;
+  }
+  #root button.ai-suggestion-card,
+  #root aside button{
+    transition:none !important;
+  }
+}
+
+/* Mobile polish. */
+@media (max-width:767px){
+  #root h1{
+    text-shadow:0 8px 30px rgba(99,102,241,.16);
+  }
+
+  #root button.ai-suggestion-card:hover{
+    transform:none;
+  }
+
+  #root > div.min-h-screen::before{
+    filter:blur(20px);
+  }
+}
