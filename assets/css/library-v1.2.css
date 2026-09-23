@@ -138,3 +138,17 @@
 .context-menu button[data-context="delete"]:hover{background:#ff647014;color:#ff9aa7}
 .section-actions{flex-wrap:wrap}
 @media(max-width:760px){.section-actions{width:100%;margin-top:8px}.section-head{align-items:flex-start;flex-direction:column}.bulk-bar{align-items:flex-start;flex-direction:column}.bulk-bar>div{width:100%}.bulk-bar button{flex:1}}
+
+
+/* Library 2.1 — Trash & Recovery */
+.filters button[data-filter="trash"]{color:#aeb5c7}
+.filters button[data-filter="trash"].active{background:#ff647012;border-color:#ff647044;color:#ffb0ba}
+.filters button[data-filter="trash"].active span{color:#ff9eaa}
+.trash-action{color:#ffabb4!important;border-color:#ff64702b!important}
+.trash-action:hover{background:#ff647012!important;border-color:#ff64704d!important}
+.item.is-trash{border-color:#ff647018}
+.item.is-trash .type-badge{color:#ffb0ba}
+.item.is-trash .thumb{filter:saturate(.72)}
+.trash-meta{font-size:9px;color:#c88b93;margin-top:7px}
+.item.is-trash .actions button:first-child{color:#aee8d9;border-color:#35ddc025}
+.item.is-trash .actions button:last-child{color:#ffabb4;border-color:#ff647025}
