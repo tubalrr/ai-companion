@@ -226,6 +226,26 @@ Error generating stack: `+o.message+`
     const item=document.createElement("div");
     item.style.cssText="pointer-events:auto;align-self:"+(role==="user"?"flex-end":"flex-start")+";max-width:88%;padding:12px 15px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:"+(role==="user"?"rgba(99,102,241,.20)":"rgba(20,22,36,.92)")+";backdrop-filter:blur(18px);color:rgba(255,255,255,.9);font:14px/1.55 system-ui,sans-serif;white-space:pre-wrap;box-shadow:0 12px 30px rgba(0,0,0,.22)";
     item.textContent=text;
+    if(role==="assistant"){
+      const actions=document.createElement("div");
+      actions.style.cssText="display:flex;gap:6px;margin-top:10px;opacity:.75";
+      actions.innerHTML='<button type="button" data-ai-copy style="border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:#cfd3df;border-radius:8px;padding:5px 8px;font-size:10px;cursor:pointer">Copy</button><button type="button" data-ai-save style="border:1px solid rgba(139,108,255,.25);background:rgba(139,108,255,.10);color:#cfc5ff;border-radius:8px;padding:5px 8px;font-size:10px;cursor:pointer">＋ Save to Library</button>';
+      actions.querySelector("[data-ai-copy]").onclick=async()=>{try{await navigator.clipboard.writeText(text);actions.querySelector("[data-ai-copy]").textContent="Copied";setTimeout(()=>actions.querySelector("[data-ai-copy]").textContent="Copy",1200)}catch(_){}};
+      actions.querySelector("[data-ai-save]").onclick=async()=>{
+        try{
+          const id=crypto.randomUUID();
+          const title="AI Response • "+new Date().toLocaleString();
+          const dbReq=indexedDB.open("AICompanionLibraryDB",1);
+          const db=await new Promise((resolve,reject)=>{dbReq.onsuccess=()=>resolve(dbReq.result);dbReq.onerror=()=>reject(dbReq.error);dbReq.onupgradeneeded=()=>{if(!dbReq.result.objectStoreNames.contains("files"))dbReq.result.createObjectStore("files")}});
+          await new Promise((resolve,reject)=>{const req=db.transaction("files","readwrite").objectStore("files").put(new Blob([text],{type:"text/plain"}),id);req.onsuccess=resolve;req.onerror=reject});
+          const list=JSON.parse(localStorage.getItem("aiLibrary")||"[]");
+          list.push({id,name:title,type:"prompts",size:text.length,createdAt:Date.now(),meta:"AI response • "+new Date().toLocaleDateString(),tags:["ai-response"]});
+          localStorage.setItem("aiLibrary",JSON.stringify(list));
+          actions.querySelector("[data-ai-save]").textContent="✓ Saved";
+        }catch(_){actions.querySelector("[data-ai-save]").textContent="Save failed";}
+      };
+      item.appendChild(actions);
+    }
     box.appendChild(item);
     box.scrollTop=box.scrollHeight;
   };
