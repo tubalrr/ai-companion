@@ -257,7 +257,7 @@ app.post("/api/library/sync", requireAuth, async(req,res)=>{
       const raw=String(asset?.dataBase64||"");
       let fileData=null;
       if(raw){
-        if(raw.length>11000000) return res.status(413).json({error:"A library file is too large to sync"});
+        if(raw.length>11000000) throw Object.assign(new Error("A library file is too large to sync"),{statusCode:413});
         fileData=Buffer.from(raw,"base64");
       }
       await client.query(
@@ -274,7 +274,7 @@ app.post("/api/library/sync", requireAuth, async(req,res)=>{
     }))});
   }catch(e){
     await client.query("ROLLBACK");
-    console.error(e); res.status(500).json({error:"Could not sync Library"});
+    console.error(e); res.status(e.statusCode||500).json({error:e.statusCode===413?e.message:"Could not sync Library"});
   }finally{ client.release(); }
 });
 
