@@ -124,7 +124,7 @@ Error generating stack: `+o.message+`
       el.dispatchEvent(new Event("input",{bubbles:true}));
       el.focus();
       sessionStorage.removeItem("aiCompanionLibraryContext");
-      history.replaceState(null,"",location.pathname);
+      window.history.replaceState(null,"",location.pathname);
     };
     setTimeout(wait,350);
   };
@@ -311,6 +311,14 @@ Error generating stack: `+o.message+`
     }
   };
 
+
+  document.addEventListener("keydown",(event)=>{
+    const el=input();
+    if(el && event.target===el && event.key==="Enter" && !event.shiftKey){
+      event.preventDefault();
+      sendMessage();
+    }
+  },true);
 
   document.addEventListener("click",(event)=>{
     const button=event.target.closest("button");
