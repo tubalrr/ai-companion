@@ -102,7 +102,7 @@ function signUser(user){
 }
 function setAuthCookie(res,token){
   res.cookie("ai_companion_session",token,{
-    httpOnly:true, secure:process.env.NODE_ENV==="production", sameSite:"lax",
+    httpOnly:true, secure:process.env.NODE_ENV==="production", sameSite:process.env.NODE_ENV==="production" ? "none" : "lax",
     maxAge:7*24*60*60*1000, path:"/"
   });
 }
@@ -186,7 +186,7 @@ app.get("/api/auth/me",async(req,res)=>{
 });
 
 app.post("/api/auth/logout",authLimiter,(_req,res)=>{
-  res.clearCookie("ai_companion_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/"});
+  res.clearCookie("ai_companion_session",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:process.env.NODE_ENV==="production" ? "none" : "lax",path:"/"});
   res.json({ok:true});
 });
 
