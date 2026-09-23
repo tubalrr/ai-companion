@@ -23,6 +23,10 @@ const statAll = document.getElementById('statAll');
 const statFiles = document.getElementById('statFiles');
 const statImages = document.getElementById('statImages');
 const statPrompts = document.getElementById('statPrompts');
+const statStorage = document.getElementById('statStorage');
+const storageFill = document.getElementById('storageFill');
+const storageMeta = document.getElementById('storageMeta');
+const starCount = document.getElementById('starCount');
 
 let data = [];
 try {
@@ -121,10 +125,16 @@ function counts() {
   const files = data.filter(function (item) { return item.type === 'files'; }).length;
   const images = data.filter(function (item) { return item.type === 'images'; }).length;
   const prompts = data.filter(function (item) { return item.type === 'prompts'; }).length;
+  const starred = data.filter(function (item) { return item.favorite; }).length;
+  const storage = data.reduce(function (sum, item) { return sum + (item.size || 0); }, 0);
   [allCount, statAll].forEach(function (element) { element.textContent = data.length; });
   [fileCount, statFiles].forEach(function (element) { element.textContent = files; });
   [imageCount, statImages].forEach(function (element) { element.textContent = images; });
   [promptCount, statPrompts].forEach(function (element) { element.textContent = prompts; });
+  if (starCount) starCount.textContent = starred;
+  if (statStorage) statStorage.textContent = sizeText(storage);
+  if (storageFill) storageFill.style.width = Math.min(100, (storage / (100 * 1024 * 1024)) * 100) + '%';
+  if (storageMeta) storageMeta.textContent = storage ? 'Local • ' + sizeText(storage) + ' used' : 'Stored on this device';
 }
 
 function sorted(list) {
@@ -139,11 +149,13 @@ function sorted(list) {
 function itemMarkup(item) {
   const label = item.type === 'images' ? 'IMAGE' : item.type === 'prompts' ? 'PROMPT' : 'FILE';
   const action = item.type === 'prompts' ? 'View' : 'Open';
+  const favorite = item.favorite ? '★' : '☆';
+  const favoriteClass = item.favorite ? ' is-favorite' : '';
   const preview = item.preview ? ' style="background-image:url(' + item.preview + ')"' : '';
   const icon = item.preview ? '' : (item.type === 'images' ? '▧' : item.type === 'prompts' ? '✦' : '▤');
   return '<article class="item">' +
     '<div class="thumb ' + (item.type === 'images' ? 'image' : '') + '"' + preview + '>' +
-      '<span class="type-badge">' + label + '</span>' + icon +
+      '<span class="type-badge">' + label + '</span><button type="button" class="favorite' + favoriteClass + '" data-favorite="' + esc(item.id) + '" aria-label="Toggle favorite">' + favorite + '</button>' + icon +
     '</div>' +
     '<div class="info"><div class="name" title="' + esc(item.name) + '">' + esc(item.name) + '</div>' +
       '<div class="meta">' + esc(item.meta || 'Library item') + '</div></div>' +
@@ -156,14 +168,15 @@ async function render() {
   counts();
   const query = search.value.trim().toLowerCase();
   const shown = sorted(data.filter(function (item) {
-    return (filter === 'all' || item.type === filter) && String(item.name || '').toLowerCase().includes(query);
+    const matchesFilter = filter === 'all' || (filter === 'starred' ? item.favorite === true : item.type === filter);
+    return matchesFilter && String(item.name || '').toLowerCase().includes(query);
   }));
 
   result.textContent = shown.length + ' item' + (shown.length === 1 ? '' : 's');
   empty.classList.toggle('show', shown.length === 0);
   if (shown.length === 0) {
-    emptyTitle.textContent = query ? 'No matching items' : 'Your library is empty';
-    emptyText.textContent = query ? 'Try another search or clear the filter.' : 'Upload something to start building your library.';
+    emptyTitle.textContent = query ? 'No matching items' : filter === 'starred' ? 'Nothing starred yet' : 'Your library is ready';
+    emptyText.textContent = query ? 'Try another search or clear the filter.' : filter === 'starred' ? 'Star important files and prompts to keep them close.' : 'Upload files or save a prompt to build your personal AI workspace.';
   }
   itemsEl.classList.toggle('list', view === 'list');
   itemsEl.innerHTML = shown.map(itemMarkup).join('');
@@ -179,6 +192,18 @@ async function render() {
       save();
       await render();
       notify('Removed from library');
+    };
+  });
+
+  itemsEl.querySelectorAll('[data-favorite]').forEach(function (button) {
+    button.onclick = function (event) {
+      event.stopPropagation();
+      const item = data.find(function (value) { return value.id === button.dataset.favorite; });
+      if (!item) return;
+      item.favorite = !item.favorite;
+      save();
+      render();
+      notify(item.favorite ? 'Added to Starred' : 'Removed from Starred');
     };
   });
 
@@ -261,6 +286,10 @@ async function add(files) {
 }
 
 document.getElementById('uploadBtn').onclick = function () { input.click(); };
+const dropUpload = document.getElementById('dropUpload');
+const emptyUpload = document.getElementById('emptyUpload');
+if (dropUpload) dropUpload.onclick = function (event) { event.stopPropagation(); input.click(); };
+if (emptyUpload) emptyUpload.onclick = function () { input.click(); };
 drop.onclick = function () { input.click(); };
 input.onchange = function () {
   if (input.files.length) add(input.files);
@@ -275,13 +304,20 @@ drop.ondrop = function (event) {
 };
 search.oninput = render;
 sort.onchange = render;
+document.addEventListener('keydown', function (event) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    search.focus();
+    search.select();
+  }
+});
 
 document.querySelectorAll('nav button').forEach(function (button) {
   button.onclick = function () {
     document.querySelectorAll('nav button').forEach(function (navButton) { navButton.classList.remove('active'); });
     button.classList.add('active');
     filter = button.dataset.filter;
-    heading.textContent = filter === 'all' ? 'All items' : filter.charAt(0).toUpperCase() + filter.slice(1);
+    heading.textContent = filter === 'all' ? 'All items' : filter === 'starred' ? 'Starred' : filter.charAt(0).toUpperCase() + filter.slice(1);
     render();
   };
 });
