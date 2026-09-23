@@ -262,12 +262,13 @@ Error generating stack: `+o.message+`
     const textValue=el.value.trim();
     if(!textValue)return;
 
-    // Keep the dashboard publicly viewable like ChatGPT; authentication is
-    // required only when the user actually starts an AI conversation.
     try{
-      let auth=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store",headers:window.aiCompanionAuthHeaders()});
+      let auth=await fetch(apiBase()+"/api/auth/me",{
+        credentials:"include",
+        cache:"no-store",
+        headers:window.aiCompanionAuthHeaders()
+      });
       if(auth.status===401){
-        // A stale local token must not block a valid login cookie.
         localStorage.removeItem("ai_companion_access_token");
         auth=await fetch(apiBase()+"/api/auth/me",{credentials:"include",cache:"no-store"});
       }
@@ -277,59 +278,58 @@ Error generating stack: `+o.message+`
           modal=document.createElement("div");
           modal.id="ai-auth-modal";
           modal.style.cssText="position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:rgba(4,6,15,.72);backdrop-filter:blur(12px)";
-          modal.innerHTML='<div role="dialog" aria-modal="true" style="width:min(430px,100%);padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(21,25,39,.98);box-shadow:0 30px 100px rgba(0,0,0,.55);color:#fff;font-family:system-ui,sans-serif;text-align:center"><div style="width:52px;height:52px;margin:0 auto 16px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#8b5cf6,#3b82f6);font-size:24px">✦</div><h2 style="margin:0 0 8px;font-size:24px">Log in to continue</h2><p style="margin:0;color:rgba(255,255,255,.55);line-height:1.6">Create an account or log in to start chatting with your AI Companion.</p><div style="display:grid;gap:10px;margin-top:22px"><a href="pages/login.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;text-decoration:none;font-weight:700">Log in</a><a href="pages/signup.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;text-decoration:none;font-weight:600">Create account</a><button type="button" data-auth-close style="padding:10px;border:0;background:transparent;color:rgba(255,255,255,.45);cursor:pointer">Not now</button></div></div>';
+          modal.innerHTML='<div role="dialog" aria-modal="true" style="width:min(430px,100%);padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(21,25,39,.98);box-shadow:0 30px 100px rgba(0,0,0,.55);color:#fff;font-family:system-ui,sans-serif;text-align:center"><h2 style="margin:0 0 8px;font-size:24px">Log in to continue</h2><p style="margin:0;color:rgba(255,255,255,.55);line-height:1.6">Create an account or log in to start chatting with your AI Companion.</p><div style="display:grid;gap:10px;margin-top:22px"><a href="pages/login.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;text-decoration:none;font-weight:700">Log in</a><a href="pages/signup.html?return=index.html" style="display:block;padding:13px;border-radius:13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;text-decoration:none;font-weight:600">Create account</a><button type="button" data-auth-close style="padding:10px;border:0;background:transparent;color:rgba(255,255,255,.45);cursor:pointer">Not now</button></div></div>';
           document.body.appendChild(modal);
           modal.querySelector("[data-auth-close]").onclick=()=>modal.remove();
           modal.addEventListener("click",e=>{if(e.target===modal)modal.remove()});
         }
         return;
       }
-      if(auth.ok){
-        const authData=await auth.json().catch(()=>({}));
-        if(authData.token)localStorage.setItem("ai_companion_access_token",authData.token);
-      }
       if(!auth.ok){
         renderMessage("assistant","The secure AI backend is currently unavailable. Please try again later.");
         return;
       }
-    }catch{
-      renderMessage("assistant","The secure AI backend is currently unavailable. Please try again later.");
-      return;
-    }
+      const authData=await auth.json().catch(()=>({}));
+      if(authData.token)localStorage.setItem("ai_companion_access_token",authData.token);
 
-    sending=true;
-    renderMessage("user",textValue);
-    history.push({role:"user",content:textValue});
-    await ensureCloudConversation(textValue);
-    await saveCloudMessage("user",textValue);
-    if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(textValue);
-    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
-    if(setter)setter.call(el,"");else el.value="";
-    el.dispatchEvent(new Event("input",{bubbles:true}));
-    try{
-      const response=await fetch(apiBase()+"/api/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json",...window.aiCompanionAuthHeaders()},
-        body:JSON.stringify({messages:history})
-      });
-      const data=await response.json().catch(()=>({}));
-      if(response.status===401){
-        localStorage.removeItem("ai_companion_access_token");
-        throw new Error("SESSION_EXPIRED");
+      sending=true;
+      renderMessage("user",textValue);
+      history.push({role:"user",content:textValue});
+      const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;
+      if(setter)setter.call(el,"");else el.value="";
+      el.dispatchEvent(new Event("input",{bubbles:true}));
+
+      try{
+        await ensureCloudConversation(textValue);
+        await saveCloudMessage("user",textValue);
+        if(window.aiCompanionAddRecent)window.aiCompanionAddRecent(textValue);
+
+        const response=await fetch(apiBase()+"/api/chat",{
+          method:"POST",
+          headers:{"Content-Type":"application/json",...window.aiCompanionAuthHeaders()},
+          body:JSON.stringify({messages:history})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(response.status===401){
+          localStorage.removeItem("ai_companion_access_token");
+          throw new Error("SESSION_EXPIRED");
+        }
+        if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
+        const answer=String(data.text||"").trim()||"The AI returned an empty response.";
+        history.push({role:"assistant",content:answer});
+        await saveCloudMessage("assistant",answer);
+        renderMessage("assistant",answer);
+      }catch(error){
+        renderMessage("assistant","AI backend error: "+error.message);
+      }finally{
+        sending=false;
+        el.focus();
       }
-      if(!response.ok)throw new Error(data.detail||data.error||"AI backend request failed");
-      const answer=String(data.text||"").trim()||"The AI returned an empty response.";
-      history.push({role:"assistant",content:answer});
-      await saveCloudMessage("assistant",answer);
-      renderMessage("assistant",answer);
     }catch(error){
-      renderMessage("assistant","AI backend error: "+error.message);
-    }finally{
       sending=false;
-      el.focus();
+      renderMessage("assistant","AI backend error: "+error.message);
     }
   };
-
 
   document.addEventListener("keydown",(event)=>{
     const el=input();
