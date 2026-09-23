@@ -20,6 +20,7 @@ document.getElementById("signup").onclick=async()=>{
   const r=await fetch(apiBase()+"/api/auth/register",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({displayName,email,password})});
   const d=await readApiResponse(r);
   if(!r.ok)throw new Error(d.error||"Registration failed");
+  if(d.token)localStorage.setItem("ai_companion_access_token",d.token);
   location.href="../index.html";
  }catch(e){error.textContent=e.message}
 };
