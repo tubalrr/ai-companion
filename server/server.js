@@ -106,25 +106,41 @@ function setAuthCookie(res,token){
     maxAge:7*24*60*60*1000, path:"/"
   });
 }
-function readToken(req){
+function getRequestTokens(req){
+  const tokens=[];
   const authHeader=String(req.headers.authorization||"");
-  if(authHeader.startsWith("Bearer ")) return authHeader.slice(7).trim()||null;
+  if(authHeader.startsWith("Bearer ")){
+    const bearer=authHeader.slice(7).trim();
+    if(bearer) tokens.push(bearer);
+  }
   const raw=req.headers.cookie?.split(";").map(x=>x.trim()).find(x=>x.startsWith("ai_companion_session="));
-  return raw ? decodeURIComponent(raw.split("=").slice(1).join("=")) : null;
+  if(raw){
+    const cookieToken=decodeURIComponent(raw.split("=").slice(1).join("="));
+    if(cookieToken && !tokens.includes(cookieToken)) tokens.push(cookieToken);
+  }
+  return tokens;
+}
+async function authenticateRequest(req){
+  if(!jwtSecret||!pool) return null;
+  for(const token of getRequestTokens(req)){
+    try{
+      const decoded=jwt.verify(token,jwtSecret);
+      const result=await pool.query(
+        "SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",
+        [decoded.sub]
+      );
+      if(result.rows[0]) return result.rows[0];
+    }catch{}
+  }
+  return null;
 }
 async function requireAuth(req,res,next){
   try{
-    const token=readToken(req);
-    if(!token||!jwtSecret||!pool) return res.status(401).json({error:"Authentication required"});
-    const decoded=jwt.verify(token,jwtSecret);
-    const result=await pool.query(
-      "SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",
-      [decoded.sub]
-    );
-    if(!result.rows[0]) return res.status(401).json({error:"User not found"});
-    req.user=result.rows[0];
+    const user=await authenticateRequest(req);
+    if(!user) return res.status(401).json({error:"Authentication required"});
+    req.user=user;
     next();
-  }catch{ return res.status(401).json({error:"Invalid or expired session"}); }
+  }catch{ return res.status(401).json({error:"Authentication required"}); }
 }
 function accountStatus(user){
   const now=Date.now();
@@ -180,13 +196,10 @@ app.post("/api/auth/login", authLimiter, async(req,res)=>{
 app.get("/api/auth/me",async(req,res)=>{
   try{
     if(!pool) return res.status(503).json({error:"Database is not configured"});
-    const token=readToken(req);
-    if(!token||!jwtSecret) return res.status(401).json({error:"Not logged in"});
-    const decoded=jwt.verify(token,jwtSecret);
-    const result=await pool.query("SELECT id,email,display_name,plan,trial_started_at,trial_ends_at,created_at FROM users WHERE id=$1",[decoded.sub]);
-    if(!result.rows[0]) return res.status(401).json({error:"Not logged in"});
-    const sessionToken=signUser(result.rows[0]);
-    res.json({ok:true,user:result.rows[0],account:accountStatus(result.rows[0]),token:sessionToken});
+    const user=await authenticateRequest(req);
+    if(!user) return res.status(401).json({error:"Not logged in"});
+    const sessionToken=signUser(user);
+    res.json({ok:true,user,account:accountStatus(user),token:sessionToken});
   }catch{ res.status(401).json({error:"Not logged in"}); }
 });
 
