@@ -1,6 +1,6 @@
 # AI Companion
 
-A modern, responsive AI Companion web app with a futuristic glassmorphism interface, account authentication, cloud conversation storage, and an OpenAI-powered chat backend.
+A modern, responsive AI Companion web app with a futuristic glassmorphism interface, account authentication, cloud conversation storage, and a Google Gemini-powered chat backend.
 
 **Version:** 1.0.0  
 **Copyright:** © 2026 TUBAL HUB
@@ -11,7 +11,7 @@ This repository is structured as a distributable/customizable software project. 
 
 [AI Companion on GitHub Pages](https://tubalrr.github.io/ai-companion/index.html)
 
-> Deployment note: The GitHub Pages frontend is static. The Node.js backend, PostgreSQL database, OpenAI API, and any paid subscription checkout must be deployed/configured separately for production use.
+> Deployment note: The GitHub Pages frontend is static. The Node.js backend, PostgreSQL database, Google Gemini API, and any paid subscription checkout must be deployed/configured separately for production use.
 
 ## Features
 
@@ -25,7 +25,7 @@ This repository is structured as a distributable/customizable software project. 
 - Account registration and login
 - HTTP-only JWT authentication
 - Cloud conversations and messages with PostgreSQL
-- OpenAI-powered AI responses through the secure backend
+- Google Gemini-powered AI responses through the secure backend
 - 7-day Premium trial flow
 - Profile, Settings, Help, Library, Projects, Scheduled, Coding, and Upgrade pages
 - Optional Firebase Authentication integration file
@@ -75,7 +75,7 @@ Buyers must use their own Firebase project and configuration. Never place Fireba
 
 ## Backend
 
-The backend is located in `server/` and uses Node.js, Express, PostgreSQL, bcryptjs, JSON Web Tokens, HTTP-only cookies, OpenAI SDK, CORS, rate limiting, and dotenv.
+The backend is located in `server/` and uses Node.js, Express, PostgreSQL, bcryptjs, JSON Web Tokens, HTTP-only cookies, OpenAI-compatible Gemini API, CORS, rate limiting, and dotenv.
 
 ### Authentication API
 
@@ -109,7 +109,7 @@ This project can be sold as a customizable source-code product.
 A buyer provides their own:
 - Brand and logo
 - Domain and hosting
-- OpenAI API key and model
+- Google Gemini API key and model
 - PostgreSQL database
 - Authentication provider
 - Firebase project, if selected
@@ -142,7 +142,7 @@ cp .env.example .env
 npm start
 ```
 
-Configure the backend environment with the buyer's own OpenAI key, PostgreSQL URL, JWT secret, port, and frontend origin.
+Configure the backend environment with the buyer's own Google Gemini API key/model, PostgreSQL URL, JWT secret, port, and frontend origin.
 
 ## Database
 
@@ -164,7 +164,7 @@ GitHub Actions runs the frontend smoke tests.
 
 - Never commit `.env` files or API keys.
 - Keep `JWT_SECRET` long and random.
-- Keep OpenAI API keys on the backend.
+- Keep Gemini API keys on the backend.
 - Never place Firebase Admin credentials in frontend files.
 - Use HTTPS in production.
 - Configure the exact production frontend origin.
