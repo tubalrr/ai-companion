@@ -107,6 +107,8 @@ function setAuthCookie(res,token){
   });
 }
 function readToken(req){
+  const authHeader=String(req.headers.authorization||"");
+  if(authHeader.startsWith("Bearer ")) return authHeader.slice(7).trim()||null;
   const raw=req.headers.cookie?.split(";").map(x=>x.trim()).find(x=>x.startsWith("ai_companion_session="));
   return raw ? decodeURIComponent(raw.split("=").slice(1).join("=")) : null;
 }
@@ -151,8 +153,9 @@ app.post("/api/auth/register", authLimiter, async(req,res)=>{
       [email,hash,displayName]
     );
     const user=result.rows[0];
-    setAuthCookie(res,signUser(user));
-    res.status(201).json({ok:true,user,account:accountStatus(user)});
+    const token=signUser(user);
+    setAuthCookie(res,token);
+    res.status(201).json({ok:true,user,account:accountStatus(user),token});
   }catch(e){
     if(e.code==="23505") return res.status(409).json({error:"An account with that email already exists"});
     console.error(e); res.status(500).json({error:"Registration failed"});
@@ -168,8 +171,9 @@ app.post("/api/auth/login", authLimiter, async(req,res)=>{
     const user=result.rows[0];
     if(!user||!(await bcrypt.compare(password,user.password_hash))) return res.status(401).json({error:"Invalid email or password"});
     delete user.password_hash;
-    setAuthCookie(res,signUser(user));
-    res.json({ok:true,user,account:accountStatus(user)});
+    const token=signUser(user);
+    setAuthCookie(res,token);
+    res.json({ok:true,user,account:accountStatus(user),token});
   }catch(e){ console.error(e); res.status(500).json({error:"Login failed"}); }
 });
 
