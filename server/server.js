@@ -312,7 +312,7 @@ app.get("/api/library/file/:id", requireAuth, async(req,res)=>{
 
 app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.GEMINI_API_KEY),model,provider:"gemini",service:"AI Companion backend"}));
 
-app.post("/api/chat", requireAuth, chatLimiter, async(req,res)=>{
+app.post("/api/chat", chatLimiter, async(req,res)=>{
   try{
     const messages=Array.isArray(req.body?.messages)?req.body.messages:[];
     if(!messages.length) return res.status(400).json({error:"messages is required"});
