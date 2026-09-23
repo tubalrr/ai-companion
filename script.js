@@ -696,7 +696,7 @@ Error generating stack: `+o.message+`
   },false);
 })();
 
-/* Lightweight homepage suggestion-card controls — event delegation, no MutationObserver. */
+/* Lightweight homepage suggestion-card controls — robust live welcome-card handling. */
 (function(){
   const prompts={
     "Plan my day":"Help me plan my day and organize my priorities.",
@@ -707,47 +707,64 @@ Error generating stack: `+o.message+`
     "What's on your mind?":"Help me think through this."
   };
   const titles=new Set(Object.keys(prompts));
-  const markCards=()=>{
+
+  const getCards=()=>{
     const cards=[];
     document.querySelectorAll("button").forEach(btn=>{
-      const label=(btn.innerText||btn.textContent||"").replace(/\\s+/g," ").trim();
+      const label=(btn.innerText||btn.textContent||"").replace(/\s+/g," ").trim();
       if(!titles.has(label))return;
       btn.classList.add("ai-suggestion-card");
       cards.push(btn);
     });
+    return cards;
+  };
 
-    // Keep only the actual welcome cards marked. They disappear as soon as
-    // the user starts typing, just like the main ChatGPT/Gemini composer flow.
+  const syncWelcomeCards=()=>{
+    const el=document.querySelector('input[placeholder*="Ask anything"]');
+    const typing=!!el && el.value.trim().length>0;
+    const conversation=!!document.getElementById("ai-live-messages") || document.body.classList.contains("ai-chat-active");
+    const hide=typing||conversation;
+    const cards=getCards();
+
+    cards.forEach(btn=>{
+      btn.style.setProperty("display",hide?"none":"","important");
+    });
+
     if(cards.length){
       const grid=cards[0].parentElement;
       if(grid)grid.classList.add("ai-home-suggestions");
       if(grid?.parentElement)grid.parentElement.classList.add("ai-home-welcome");
     }
 
-    let style=document.getElementById("ai-chat-home-hide-style");
-    if(!style){
-      style=document.createElement("style");
-      style.id="ai-chat-home-hide-style";
-      style.textContent="body.ai-chat-active button.ai-suggestion-card{display:none!important}";
-      document.head.appendChild(style);
-    }
-
-    const sync=()=>{
-      const el=document.querySelector('input[placeholder*="Ask anything"]');
-      const active=!!el && el.value.trim().length>0;
-      document.querySelectorAll("button.ai-suggestion-card").forEach(btn=>{
-        btn.style.display=active || document.body.classList.contains("ai-chat-active") ? "none" : "";
-      });
-      if(active) document.body.classList.add("ai-chat-active");
-      if(!active && !document.getElementById("ai-live-messages")) document.body.classList.remove("ai-chat-active");
-    };
-    window.aiCompanionSyncWelcome=sync;
-    sync();
-
-    document.querySelectorAll(".ai-suggestion-logo").forEach(el=>el.remove());
+    if(hide)document.body.classList.add("ai-chat-active");
+    else if(!typing&&!document.getElementById("ai-live-messages"))document.body.classList.remove("ai-chat-active");
   };
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",markCards,{once:true});
-  else requestAnimationFrame(markCards);
+
+  window.aiCompanionSyncWelcome=syncWelcomeCards;
+
+  // React renders the cards asynchronously. Keep syncing when that DOM appears.
+  const observer=new MutationObserver(()=>syncWelcomeCards());
+  observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(()=>observer.disconnect(),30000);
+
+  const run=()=>syncWelcomeCards();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run,{once:true});
+  else requestAnimationFrame(run);
+  setTimeout(run,100);
+  setTimeout(run,500);
+  setTimeout(run,1000);
+  setTimeout(run,2000);
+
+  // Directly watch the real composer. This does not depend on the cards already
+  // having a CSS class, so typing always hides them immediately.
+  document.addEventListener("input",event=>{
+    const el=event.target;
+    if(el && el.matches?.('input[placeholder*="Ask anything"]'))syncWelcomeCards();
+  },true);
+  document.addEventListener("keyup",event=>{
+    const el=event.target;
+    if(el && el.matches?.('input[placeholder*="Ask anything"]'))syncWelcomeCards();
+  },true);
 
   const put=(value)=>{
     const el=document.querySelector('input[placeholder*="Ask anything"]');
@@ -756,7 +773,9 @@ Error generating stack: `+o.message+`
     if(setter)setter.call(el,value);else el.value=value;
     el.dispatchEvent(new Event("input",{bubbles:true}));
     el.focus();
+    syncWelcomeCards();
   };
+
   document.addEventListener("click",(event)=>{
     const btn=event.target?.closest?.("button");
     if(!btn)return;
@@ -767,30 +786,6 @@ Error generating stack: `+o.message+`
     event.stopPropagation();
     put(prompt);
   },true);
-  // Typing in the composer switches from the welcome screen to conversation mode.
-  // Run on every input so React re-renders cannot bring the cards back while typing.
-  const watchComposer=()=>{
-    const el=document.querySelector('input[placeholder*="Ask anything"]');
-    if(!el)return;
-    if(el.dataset.aiWelcomeBound)return;
-    el.dataset.aiWelcomeBound="1";
-    const sync=()=>{
-      const value=el.value.trim();
-      if(value){
-        document.body.classList.add("ai-chat-active");
-      }else if(!document.getElementById("ai-live-messages")){
-        document.body.classList.remove("ai-chat-active");
-      }
-      window.aiCompanionSyncWelcome?.();
-    };
-    el.addEventListener("input",sync);
-    el.addEventListener("keyup",sync);
-    sync();
-  };
-  watchComposer();
-  const composerObserver=new MutationObserver(watchComposer);
-  composerObserver.observe(document.body,{childList:true,subtree:true});
-  setTimeout(()=>composerObserver.disconnect(),20000);
 
   window.setTimeout(()=>window.aiCompanionLoadCloudRecent?.(),900);
 })();
