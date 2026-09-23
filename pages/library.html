@@ -51,6 +51,7 @@
   <button data-filter="images"><span>▧</span> Images <b id="imageCount">0</b></button>
   <button data-filter="prompts"><span>✎</span> Prompts <b id="promptCount">0</b></button>
   <button data-filter="starred"><span>★</span> Starred <b id="starCount">0</b></button>
+  <button data-filter="trash"><span>♲</span> Trash <b id="trashCount">0</b></button>
 </nav>
 
 <section id="drop" class="drop">
@@ -60,7 +61,7 @@
 <section class="content">
   <div class="section-head">
     <div><div class="section-title-row"><h2 id="heading">All items</h2><span class="live-dot"></span></div><small id="result">0 items</small></div>
-    <div class="section-actions"><button id="smartOrganize" class="secondary compact">✦ Smart organize</button><button id="newFolder" class="secondary compact">＋ Folder</button><button id="selectMode" class="secondary compact">☑ Select</button><button id="clear">Clear library</button></div>
+    <div class="section-actions"><button id="smartOrganize" class="secondary compact">✦ Smart organize</button><button id="emptyTrash" class="secondary compact trash-action">Empty Trash</button><button id="newFolder" class="secondary compact">＋ Folder</button><button id="selectMode" class="secondary compact">☑ Select</button><button id="clear">Move all to Trash</button></div>
   </div>
   <div id="empty" class="empty"><div class="empty-orb">✦</div><h3 id="emptyTitle">Your library is ready</h3><p id="emptyText">Upload files or save a prompt to build your personal AI workspace.</p><button type="button" id="emptyUpload" class="upload">＋ Add your first asset</button></div>
   <div id="bulkBar" class="bulk-bar"><span id="selectedCount">0 selected</span><div><button id="bulkStar">★ Star</button><button id="bulkDownload">↓ Download</button><button id="bulkDelete">Delete</button><button id="cancelSelect">Cancel</button></div></div>
