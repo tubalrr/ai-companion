@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const jwtSecret = process.env.JWT_SECRET;
 const pool = process.env.DATABASE_URL ? new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -22,8 +22,11 @@ const pool = process.env.DATABASE_URL ? new Pool({
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-if (!process.env.OPENAI_API_KEY) console.warn("OPENAI_API_KEY is not set. Add it to server/.env before starting the server.");
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+if (!process.env.GEMINI_API_KEY) console.warn("GEMINI_API_KEY is not set. Add it to server/.env before starting the server.");
+const openai = process.env.GEMINI_API_KEY ? new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+}) : null;
 
 app.use(express.json({ limit: "12mb" }));
 app.use(cookieParser());
@@ -289,7 +292,7 @@ app.get("/api/library/file/:id", requireAuth, async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"Could not load cloud file"});}
 });
 
-app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.OPENAI_API_KEY),model,service:"AI Companion backend"}));
+app.get("/api/health", (_req,res)=>res.json({ok:Boolean(process.env.GEMINI_API_KEY),model,provider:"gemini",service:"AI Companion backend"}));
 
 app.post("/api/chat", requireAuth, chatLimiter, async(req,res)=>{
   try{
@@ -297,13 +300,15 @@ app.post("/api/chat", requireAuth, chatLimiter, async(req,res)=>{
     if(!messages.length) return res.status(400).json({error:"messages is required"});
     const safeMessages=messages.filter(m=>m&&(m.role==="user"||m.role==="assistant")).slice(-20).map(m=>({role:m.role,content:String(m.content||"").slice(0,12000)}));
     if(!openai) return res.status(503).json({error:"AI service is not configured"});
-    const response=await openai.responses.create({
+    const response=await openai.chat.completions.create({
       model,
-      instructions:"You are AI Companion, a helpful, clear, friendly assistant. Do not claim to have performed actions you did not perform.",
-      input:safeMessages,
-      max_output_tokens:1200
+      messages:[
+        {role:"system",content:"You are AI Companion, a helpful, clear, friendly assistant. Do not claim to have performed actions you did not perform."},
+        ...safeMessages
+      ],
+      max_tokens:1200
     });
-    res.json({ok:true,text:response.output_text||""});
+    res.json({ok:true,text:response.choices?.[0]?.message?.content||""});
   }catch(error){
     console.error("AI request failed:",error);
     res.status(500).json({ok:false,error:"AI request failed",detail:process.env.NODE_ENV==="production"?undefined:error.message});
