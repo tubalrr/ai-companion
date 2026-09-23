@@ -374,9 +374,12 @@ app.post("/api/chat", chatLimiter, async(req,res)=>{
 
 app.use(express.static(root));
 
-initAuthDb().then(()=>{
-  app.listen(port,()=>console.log(`AI Companion running at http://localhost:${port}`));
-}).catch(error=>{
-  console.error("Database initialization failed:",error);
-  process.exit(1);
+app.listen(port,()=>{
+  console.log(`AI Companion running at http://localhost:${port}`);
+  initAuthDb().then(()=>{
+    console.log("Database initialization complete");
+  }).catch(error=>{
+    console.error("Database initialization failed:",error);
+    console.error("Guest chat remains available; account/cloud features will stay unavailable until the database is reachable.");
+  });
 });
